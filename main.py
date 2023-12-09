@@ -4,4 +4,4 @@ def print_hi(name):
 
 
 if __name__ == '__main__':
-    print_hi('Steee')
+    print_hi('Paul')
