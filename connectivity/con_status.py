@@ -2,11 +2,11 @@ import netifaces
 import subprocess
 import time
 
-
 def get_default_gateway_interface():
     gateways = netifaces.gateways()
-    return gateways.get(netifaces.AF_INET, {}).get('default', (None, None))[1]
-
+    for gateway_info in gateways.get(netifaces.AF_INET, []):
+        if gateway_info[1] is not None:
+            return gateway_info[1]
 
 def is_wan_connected(interface_name):
     try:
@@ -15,11 +15,9 @@ def is_wan_connected(interface_name):
     except ValueError:
         return False
 
-
 def connect_gsm():
     # Add your code to connect to GSM module here
     print("Connecting to GSM...")
-
 
 def main():
     while True:
@@ -36,7 +34,6 @@ def main():
             print("No default gateway found. Internet access may be unavailable.")
 
         time.sleep(60)  # Adjust the sleep duration based on your needs
-
 
 if __name__ == "__main__":
     main()
