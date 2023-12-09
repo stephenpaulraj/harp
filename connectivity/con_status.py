@@ -1,6 +1,5 @@
 import netifaces
-import subprocess
-import time
+
 
 def get_default_gateway_interface():
     gateways = netifaces.gateways()
@@ -8,32 +7,38 @@ def get_default_gateway_interface():
         if gateway_info[1] is not None:
             return gateway_info[1]
 
-def is_wan_connected(interface_name):
+
+def is_interface_connected(interface_name):
     try:
         addresses = netifaces.ifaddresses(interface_name)
         return netifaces.AF_INET in addresses
     except ValueError:
         return False
 
+
 def connect_gsm():
-    # Add your code to connect to GSM module here
+    # GSM init
     print("Connecting to GSM...")
 
+
 def main():
+    eth_interface = "eth1"
+    gsm_interface = "usb1"
+
     while True:
-        default_interface = get_default_gateway_interface()
+        is_eth_connected = is_interface_connected(eth_interface)
 
-        if default_interface:
-            print(f"Internet access via {default_interface}.")
-            if is_wan_connected(default_interface):
-                print(f"{default_interface} is connected. No problem.")
-            else:
-                print(f"{default_interface} is not available. Connecting to GSM...")
-                connect_gsm()
+        if is_eth_connected:
+            print(f"{eth_interface} is connected. Internet access via {eth_interface}.")
         else:
-            print("No default gateway found. Internet access may be unavailable.")
+            print(f"{eth_interface} is not available. Switching to GSM...")
+            connect_gsm()
 
-        time.sleep(60)  # Adjust the sleep duration based on your needs
+        if not is_eth_connected:
+            is_gsm_connected = is_interface_connected(gsm_interface)
+            if is_gsm_connected:
+                print(f"{gsm_interface} is connected. Internet access via {gsm_interface}.")
+
 
 if __name__ == "__main__":
     main()
