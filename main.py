@@ -1,7 +1,5 @@
-
-def print_hi(name):
-    print(f'Hi, {name}')
+from connectivity import con_status
 
 
 if __name__ == '__main__':
-    print_hi('Paul')
+    con_status.main()
