@@ -22,8 +22,8 @@ def connect_gsm():
 
 
 def main():
-    eth_interface = "eth1"
-    gsm_interface = "usb1"
+    eth_interface = "eth0"
+    gsm_interface = "usb0"
 
     while True:
         is_eth_connected = is_interface_connected(eth_interface)
