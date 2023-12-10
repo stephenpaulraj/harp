@@ -41,7 +41,7 @@ def connect_gsm():
         sim_com.connect_sim_com()
     elif connected_device_type == 'cavili':
         logger.info(f'CAVILI device found')
-        cavili.connect_caili_com()
+        # cavili.connect_caili_com()
     elif connected_device_type == 'Unknown':
         logger.error(f"No GSM harware found")
 
