@@ -12,6 +12,7 @@ modem = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
 
 # Read the current APN configuration
 response = send_command(modem, 'AT+CGDCONT?')
+print(response)
 
 if 'OK' not in response and 'ERROR' in response:
     with open('/home/pi/harp/apn.txt', 'r') as apn_file:
