@@ -8,8 +8,11 @@ def send_command(ser, cmd):
     return ser.read_all().decode()
 
 
-modem = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
-
+modem = serial.Serial('/dev/ttyACM0', baudrate=460800,
+                      timeout=5,
+                      at_cmd_delay=0.1,
+                      debug=False)
+print(modem)
 # Read the current APN configuration
 response = send_command(modem, 'AT+CGDCONT?')
 print(response)
