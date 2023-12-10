@@ -1,3 +1,5 @@
+import logging
+
 import serial
 import time
 
@@ -6,10 +8,11 @@ modem = serial.Serial(port='/dev/ttyACM0', baudrate=460800, timeout=5)
 print(modem)
 
 
-def send_command(ser, cmd):
+def send_command(cmd):
     modem.write(cmd.encode(byte_encoding) + b"\r")
-    time.sleep(0.1)
-    return ser.read_all().decode()
+    time.sleep(1)
+    print(modem.read_all().decode())
+    return modem.read_all().decode()
 
 
 def read_lines():
@@ -24,8 +27,7 @@ def close():
 
 
 # Read the current APN configuration
-response = send_command(modem, 'AT+CGDCONT?')
-print(response)
+response = send_command('AT+CGDCONT?')
 
 # if 'OK' not in response and 'ERROR' in response:
 #     with open('/home/pi/harp/apn.txt', 'r') as apn_file:
