@@ -27,7 +27,7 @@ def close():
 
 
 # Read the current APN configuration
-response = send_command('AT+CGDCONT?')
+response = send_command('AT')
 
 # if 'OK' not in response and 'ERROR' in response:
 #     with open('/home/pi/harp/apn.txt', 'r') as apn_file:
