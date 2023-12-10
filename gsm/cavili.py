@@ -1,6 +1,6 @@
-from sim_modem import Modem, SerialComm
+from sim_modem import Modem
 
-modem = Modem('/dev/ttyACM0', debug=True)
-status = modem.get_sim_status()
+device = Modem('/dev/ttyACM0')
+status = device.get_sim_status()
 
 print(status)
