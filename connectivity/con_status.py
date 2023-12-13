@@ -38,7 +38,7 @@ def connect_gsm():
 
     if connected_device_type == 'simcom':
         logger.info(f'SIMCOM device found')
-        sim_com.connect_sim_com()
+        # sim_com.connect_sim_com()
     elif connected_device_type == 'cavili':
         logger.info(f'CAVILI device found')
         # cavili.connect_caili_com()
@@ -57,31 +57,8 @@ def main():
 
             if internet_source == eth_interface:
                 logger.info("Using WAN (eth0) for internet")
-                # Get this data
-                # what interfcae
-                # system uptime
-                # network uptime
-                # memory
-                # Storage
-                # local ip
-                # public ip
-                # dataplicty is active or not
-                # pushed to a topic (create a topic)
             elif internet_source == gsm_interface:
                 logger.info("Using GSM (usb0) for internet")
-                # what interfcae
-                # system uptime
-                # network uptime
-                # memory
-                # Storage
-                # local ip
-                # public ip
-                # dataplicty is active or not
-                # pushed to a topic (create a topic)
-                # apn
-                # Mobile No
-                # gsm modem staus (R
-                # SignalQuality
                 if not is_interface_connected(gsm_interface):
                     connect_gsm()
             else:
