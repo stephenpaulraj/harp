@@ -8,16 +8,17 @@ def find_gsm_device_type(device_paths):
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
-    usb_device = "/dev/ttyUSB2"
-    amc_device = "/dev/ttyACM0"
+    usb_device = ["/dev/ttyUSB2"]
+    amc_device = ["/dev/ttyACM0"]
 
     check_usb = find_gsm_device_type(usb_device)
     check_amc = find_gsm_device_type(amc_device)
 
     if check_usb:
-        logger.info(f'GSM Device attached to - {usb_device}')
+        logger.info(f'GSM Device attached to - {usb_device[0]}')
     elif check_amc:
-        logger.info(f'GSM Device attached to - {amc_device}')
+        logger.info(f'GSM Device attached to - {amc_device[0]}')
     else:
         logger.info(f'No GSM Device Connected')
+
     # gsm_device_type = con_status.find_gsm_device_type(usb_devices + amc_devices)
