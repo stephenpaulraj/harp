@@ -25,8 +25,6 @@ if __name__ == '__main__':
     else:
         logger.info(f'Internet status not known')
 
-
-
     usb_device = ["/dev/ttyUSB2"]
     amc_device = ["/dev/ttyACM0"]
 

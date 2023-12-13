@@ -1,4 +1,6 @@
 import netifaces
+import requests
+
 from gsm import cavili, sim_com
 import os
 from log_helper import log_config
@@ -8,9 +10,11 @@ import socket
 
 def check_internet_connection():
     try:
-        socket.create_connection(("www.google.com", 80), timeout=5)
-        return True
-    except OSError:
+        # Try to make a GET request to a known server
+        response = requests.get("http://www.google.com", timeout=5)
+        # Check if the response status code indicates a successful connection
+        return response.status_code == 200
+    except requests.ConnectionError:
         return False
 
 
