@@ -3,8 +3,27 @@ from gsm import cavili, sim_com
 import os
 from log_helper import log_config
 import psutil
+import socket
 
-logger, file_handler = log_config.setup_logger()
+
+def check_internet_connection():
+    try:
+        socket.create_connection(("www.google.com", 80), timeout=5)
+        return True
+    except OSError:
+        return False
+
+
+def get_active_network_interface():
+    interfaces = psutil.net_if_stats()
+    active_interface = None
+
+    for interface, stats in interfaces.items():
+        if stats.isup and stats.speed > 0:
+            active_interface = interface
+            break
+
+    return active_interface
 
 
 def find_gsm_device_type(device_paths):
@@ -37,13 +56,13 @@ def connect_gsm():
     connected_device_type = find_gsm_device_type(usb_devices + amc_devices)
 
     if connected_device_type == 'simcom':
-        logger.info(f'SIMCOM device found')
+        pass
         # sim_com.connect_sim_com()
     elif connected_device_type == 'cavili':
-        logger.info(f'CAVILI device found')
+        pass
         # cavili.connect_caili_com()
     elif connected_device_type == 'Unknown':
-        logger.error(f"No GSM harware found")
+        pass
 
 
 def main():
@@ -56,13 +75,13 @@ def main():
             internet_source = find_internet_source()
 
             if internet_source == eth_interface:
-                logger.info("Using WAN (eth0) for internet")
+                pass
             elif internet_source == gsm_interface:
-                logger.info("Using GSM (usb0) for internet")
+                pass
                 if not is_interface_connected(gsm_interface):
                     connect_gsm()
             else:
-                logger.info("No internet source found")
+                pass
 
         else:
-            logger.info("No internet connection available")
+            pass
