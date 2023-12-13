@@ -9,7 +9,7 @@ def find_gsm_device_type(device_paths):
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     usb_device = "/dev/ttyUSB2"
-    amc_device = "/dev/ttyAMC0"
+    amc_device = "/dev/ttyACM0"
 
     check_usb = find_gsm_device_type(usb_device)
     check_amc = find_gsm_device_type(amc_device)
