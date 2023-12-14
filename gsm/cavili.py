@@ -29,30 +29,3 @@ def is_valid_apn_configured(modem, timeout=10):
     except TimeoutError:
         print("Timeout: Modem response not received within {} seconds.".format(timeout))
         return None
-
-
-if __name__ == '__main__':
-    # c = Modem('/dev/ttyACM0')  # Replace 'Modem' with the actual class from 'sim_modem'
-
-    start = time.time()
-
-    # while True:
-    #     is_valid_apn_configured(c)
-    # if time.time() - start > 10:
-    #     start = time.time()
-    #
-    #     with open('/home/pi/apn1.txt', 'r') as f:
-    #         ser1 = f.read().strip()
-    #     print(ser1)
-    #
-    #     if ser1 != "0":
-    #         update_apn(c, ser1)
-    #         time.sleep(0.5)
-    #
-    #         with open('/home/pi/apn1.txt', 'w') as f:
-    #             f.write('0')
-    #
-    #         print("Restart Modem")
-    #
-    #     else:
-    #         print("No APN found")
