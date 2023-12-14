@@ -1,7 +1,8 @@
 import os
-
+from sim_modem import Modem
 from connectivity import con_status
 from connectivity.con_status import check_internet_connection, get_active_network_interface
+from gsm.cavili import is_valid_apn_configured
 from log_helper import log_config
 
 
@@ -34,7 +35,10 @@ if __name__ == '__main__':
     if check_usb:
         logger.info(f'GSM Device attached to - {usb_device[0]}')
     elif check_amc:
+        dev = Modem('/dev/ttyACM0')
+        apn_res = is_valid_apn_configured(dev)
         logger.info(f'GSM Device attached to - {amc_device[0]}')
+        logger.info(f'APN - {apn_res}')
     else:
         logger.info(f'No GSM Device Connected')
 
