@@ -20,20 +20,15 @@ def update_apn(modem, APN, timeout=10):
         return None
 
 
-def is_valid_apn_configured(modem):
-    modem.comm.send('AT+CGDCONT?')
-    response = modem.comm.read_lines()
-    time.sleep(0.5)
-    # if modem.debug:
-    #     print("Device responded: ", response)
-    # for line in response:
-    #     if '+CGDCONT:' in line:
-    #         # Assuming the APN information is present in the response
-    #         # Modify this part based on the actual response format
-    #         if 'your_expected_apn' in line:
-    #             return True
-
-    return response
+def is_valid_apn_configured(modem, timeout=10):
+    try :
+        modem.comm.send('AT+CGDCONT?')
+        response = modem.comm.read_lines()
+        time.sleep(0.5)
+        return response
+    except TimeoutError:
+        print("Timeout: Modem response not received within {} seconds.".format(timeout))
+        return None
 
 
 if __name__ == '__main__':
