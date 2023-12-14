@@ -22,16 +22,12 @@ if __name__ == '__main__':
             if active_interface == 'usb0':
                 usb_device = ["/dev/ttyUSB2"]
                 amc_device = ["/dev/ttyACM0"]
-
                 check_usb = find_gsm_device_type(usb_device)
                 check_amc = find_gsm_device_type(amc_device)
                 if check_usb:
                     logger.info(f'GSM Device attached to - {usb_device[0]}')
                 elif check_amc:
-                    dev = Modem('/dev/ttyACM0')
-                    apn_res = is_valid_apn_configured(dev)
                     logger.info(f'GSM Device attached to - {amc_device[0]}')
-                    logger.info(f'APN - {apn_res}')
                 else:
                     logger.info(f'No GSM Device Connected')
         else:
