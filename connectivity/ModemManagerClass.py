@@ -17,8 +17,7 @@ class ModemManager:
         output = self.run_mmcli_command(["-L"])
         lines = output.split('\n')
         if len(lines) > 1:
-            # Assuming the first line contains the modem index
-            return int(lines[1].split()[0])
+            return 0
         return None
 
     def enable_modem(self):

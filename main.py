@@ -5,6 +5,7 @@ from connectivity.ModemManagerClass import ModemManager
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 from log_helper import log_config
 from mqtt_broker.MqttClass import MQTTClient
+from system.SytemInfoClass import SystemInfoCollector
 
 
 def find_gsm_device_type(device_paths):
@@ -14,8 +15,15 @@ def find_gsm_device_type(device_paths):
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     internet_status = check_internet_connection()
+
+    info_collector = SystemInfoCollector()
+    info_collector.collect_info()
+    json_data = info_collector.to_json()
+    logger.info(json_data)
+
     if internet_status:
         mqtt_instance = MQTTClient()
+
         logger.info(f'Connected to Internet {mqtt_instance}')
         active_interface = get_active_network_interface()
         if active_interface:

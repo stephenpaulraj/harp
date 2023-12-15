@@ -25,10 +25,15 @@ class MQTTClient:
         self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
-        pass
+        client.subscribe('hardwarelist')
+        client.subscribe('remote-access')
+        client.subscribe('network')
+        client.subscribe('web-Alarms')
+        client.subscribe('web-hardwarestatus')
 
     def on_message(self, client, userdata, msg):
-        pass
+        topic = msg.topic
+
 
     def on_publish(self, client, userdata, mid):
         pass
