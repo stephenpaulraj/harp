@@ -1,9 +1,10 @@
+import json
 import os
-from sim_modem import Modem
-from connectivity import con_status
+
+from connectivity.ModemManagerClass import ModemManager
 from connectivity.con_status import check_internet_connection, get_active_network_interface
-from gsm.cavili import is_valid_apn_configured
 from log_helper import log_config
+from mqtt_broker.MqttClass import MQTTClient
 
 
 def find_gsm_device_type(device_paths):
@@ -12,14 +13,26 @@ def find_gsm_device_type(device_paths):
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
-
     internet_status = check_internet_connection()
     if internet_status:
-        logger.info(f'Connected to Internet')
+        mqtt_instance = MQTTClient()
+        logger.info(f'Connected to Internet {mqtt_instance}')
         active_interface = get_active_network_interface()
         if active_interface:
             logger.info(f"Active network interface: {active_interface}")
             if active_interface == 'usb0':
+                modem_manager = ModemManager()
+                logger.info("Modem Index:", modem_manager.modem_index)
+                enable_result = modem_manager.enable_modem()
+                logger.info("Enable Result:", enable_result)
+                modem_info = modem_manager.get_modem_info()
+                logger.info("Modem Information:")
+                logger.info(json.dumps(modem_info, indent=2))
+
+                internet_status = modem_manager.get_internet_status()
+                logger.info("Internet Status:")
+                logger.info(json.dumps(internet_status, indent=2))
+
                 usb_device = ["/dev/ttyUSB2"]
                 amc_device = ["/dev/ttyACM0"]
                 check_usb = find_gsm_device_type(usb_device)
