@@ -31,7 +31,7 @@ def publish_payload_periodically(mqtt_ins, logg):
     hw_id = get_hw_id(logg)
     while not mqtt_ins.should_exit:
         payload = json.dumps({
-            "HardWareID": hw_id,
+            "HardWareID": int(hw_id),
             "object": {
                 "ParameterName": "Connection",
                 "Value": "1111",
