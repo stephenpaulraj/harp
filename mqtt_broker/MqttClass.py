@@ -35,8 +35,9 @@ class MQTTClient:
         self.context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
         self.client.tls_set_context(context=self.context)
-        self.client.connect(self.broker_address, port=self.port, keepalive=1000)
+        self.client.connect(self.broker_address, port=self.port, keepalive=20)
 
+        time.sleep(5)
         self.client.loop_start()
 
     def get_serial_id(self):
