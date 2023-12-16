@@ -77,6 +77,8 @@ class MQTTClient:
             if isinstance(json_data, bytes):
                 json_data = json_data.decode('utf-8')
 
+            self.logger.info(f"Received JSON data: {json_data}")
+
             data = json.loads(json_data)
 
             for obj_key, obj_value in data.items():
@@ -135,7 +137,6 @@ class MQTTClient:
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         hw_id = self.find_hardware_id(serial_id, m_decode)
-        self.logger.info(f"Hardware List Raw : {m_decode}")
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
