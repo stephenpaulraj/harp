@@ -70,7 +70,6 @@ class MQTTClient:
         start_time = time.time()
         while not self.is_tun0_interface_present():
             time.sleep(1)
-
             if time.time() - start_time > timeout:
                 self.logger.error("Timeout waiting for tun0 interface to be up.")
                 return
