@@ -80,7 +80,7 @@ class MQTTClient:
             data = json.loads(json_data)
 
             for obj_key, obj_value in data.items():
-                if obj_value["SerialNumber"] == serial_number:
+                if str(obj_value["SerialNumber"]) == str(serial_number):
                     return obj_value["HardwareID"]
 
         except json.JSONDecodeError as e:
