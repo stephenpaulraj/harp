@@ -10,7 +10,7 @@ from pyroute2 import IPDB
 
 
 def get_serial_id():
-    f = open('/home/pi/serialid.txt', 'r')
+    f = open('/home/pi/serialid.txt', 'w')
     # f = open('dummy_data/serialid.txt', 'r')
     SerialNumber = f.read()
     f.close()
@@ -18,7 +18,7 @@ def get_serial_id():
 
 
 def get_hw_id():
-    f = open('/home/pi/hardwareid.txt', 'r')
+    f = open('/home/pi/hardwareid.txt', 'w')
     # f = open('dummy_data/hardwareid.txt', 'r')
     HwId = f.read()
     f.close()
@@ -127,7 +127,7 @@ class MQTTClient:
         hw_id = self.get_hardware_id(serial_id, m_decode)
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
-        f = open('/home/pi/hardwareid.txt', 'r')
+        f = open('/home/pi/hardwareid.txt', 'w')
         # f = open('dummy_data/hardwareid.txt', 'w')
         f.write(str(hw_id))
         f.close()
