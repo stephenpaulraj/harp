@@ -38,8 +38,8 @@ def publish_payload_periodically(mqtt_ins, logg):
                 "AlarmID": "9999"
             }
         })
-        mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-        logger.info("Payload sent successfully.")
+        mqtt_ins.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+        logg.info("Payload sent successfully.")
         time.sleep(10)
 
 

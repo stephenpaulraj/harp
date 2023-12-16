@@ -37,9 +37,6 @@ class MQTTClient:
         self.client.tls_set_context(context=self.context)
         self.client.connect(self.broker_address, port=self.port, keepalive=1000)
 
-        while not self.connection_flag:
-            time.sleep(1)
-
         self.client.loop_start()
 
     def get_serial_id(self):
