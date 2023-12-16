@@ -1,10 +1,11 @@
 import netifaces
 import requests
-
+import subprocess
 from gsm import cavili, sim_com
 import os
 from log_helper import log_config
 import psutil
+from pyroute2 import IPDB
 import socket
 
 
@@ -50,6 +51,13 @@ def find_internet_source():
         return "usb0"
     else:
         return None
+
+
+def check_tun_status():
+    command = "cat /sys/class/net/tun0/operstate"
+    output = subprocess.check_output(command, shell=True)
+    output = (output.decode('ascii'))
+
 
 
 def connect_gsm():
