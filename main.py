@@ -57,8 +57,8 @@ if __name__ == '__main__':
         publish_thread.start()
 
         try:
-            while True:
-                mqtt_instance.client.loop_forever()
+            while not mqtt_instance.should_exit:
+                mqtt_instance.client.loop(timeout=1.0, max_packets=1)  # Adjust timeout as needed
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
