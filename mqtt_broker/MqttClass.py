@@ -9,22 +9,6 @@ import uuid
 from pyroute2 import IPDB
 
 
-def get_serial_id():
-    f = open('/home/pi/serialid.txt', 'w')
-    # f = open('dummy_data/serialid.txt', 'r')
-    SerialNumber = f.read()
-    f.close()
-    return SerialNumber
-
-
-def get_hw_id():
-    f = open('/home/pi/hardwareid.txt', 'w')
-    # f = open('dummy_data/hardwareid.txt', 'r')
-    HwId = f.read()
-    f.close()
-    return HwId
-
-
 class MQTTClient:
     def __init__(self, logger):
         self.logger = logger
@@ -52,6 +36,30 @@ class MQTTClient:
 
         self.client.loop_start()
 
+    def get_serial_id(self):
+        try:
+            with open('/home/pi/serialid.txt', 'r') as f:
+                SerialNumber = f.read()
+            return SerialNumber
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/serialid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading serial id: {e}")
+            return None
+
+    def get_hw_id(self):
+        try:
+            with open('/home/pi/hardwareid.txt', 'r') as f:
+                HwId = f.read()
+            return HwId
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/hardwareid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading hardware id: {e}")
+            return None
+
     def check_connection(self):
         return self.connection_flag and self.client.is_connected()
 
@@ -64,7 +72,7 @@ class MQTTClient:
                 self.logger.error(f"Error checking tun0 interface: {e}")
                 return False
 
-    def get_hardware_id(self, serial_number, json_data):
+    def find_hardware_id(self, serial_number, json_data):
         try:
             if isinstance(json_data, bytes):
                 json_data = json_data.decode('utf-8')
@@ -122,9 +130,9 @@ class MQTTClient:
             self.process_network(msg)
 
     def process_hardwarelist(self, msg):
-        serial_id = get_serial_id()
+        serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        hw_id = self.get_hardware_id(serial_id, m_decode)
+        hw_id = self.find_hardware_id(serial_id, m_decode)
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
@@ -141,8 +149,8 @@ class MQTTClient:
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         access_value, hardware_id = self.get_remote(m_decode)
-        if hardware_id == get_hw_id():
-            self.logger.info(f"The HW is: {get_hw_id()}")
+        if hardware_id == self.get_hw_id():
+            self.logger.info(f"The HW is: {self.get_hw_id()}")
             if access_value is not None:
                 self.logger.info(f"The Access value is: {access_value}")
                 if access_value == "0":
@@ -156,7 +164,7 @@ class MQTTClient:
                         self.logger.info("tun0 interface is present. Sending payload.")
                         payload = json.dumps(
                             {
-                                "HardWareID": get_hw_id(),
+                                "HardWareID": self.get_hw_id(),
                                 "object": {
                                     "ParameterName": "Remote",
                                     "Value": "1111",
