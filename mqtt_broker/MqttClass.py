@@ -1,6 +1,8 @@
 import json
 import os
 import subprocess
+import time
+
 import paho.mqtt.client as mqtt
 import ssl
 from pyroute2 import IPRoute
@@ -59,6 +61,31 @@ class MQTTClient:
         except Exception as e:
             self.logger.error(f"Error reading hardware id: {e}")
             return None
+
+    def start_vpn_and_send_payload(self):
+        subprocess.Popen(['/home/pi/rmoteStart.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+        self.logger.info("Remote Access (VPN) Started")
+
+        timeout = 30
+        start_time = time.time()
+        while not self.is_tun0_interface_present():
+            time.sleep(1)
+
+            if time.time() - start_time > timeout:
+                self.logger.error("Timeout waiting for tun0 interface to be up.")
+                return
+
+        self.logger.info("tun0 interface is present. Sending payload.")
+        payload = json.dumps({
+            "HardWareID": self.get_hw_id(),
+            "object": {
+                "ParameterName": "Remote",
+                "Value": "1111",
+                "AlarmID": "8888"
+            }
+        })
+        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+        self.logger.info("Payload sent successfully.")
 
     def check_connection(self):
         return self.connection_flag and self.client.is_connected()
@@ -157,25 +184,10 @@ class MQTTClient:
                 if access_value == "0":
                     os.popen('/home/pi/rmoteStop.sh')
                     self.logger.info(f"Remote Access (VPN) Stopped")
-                if access_value == "1":
-                    os.popen('/home/pi/rmoteStart.sh')
-                    self.logger.info(f"Remote Access (VPN) Started")
-                    # find Tun0 available (send Payload) tun0 i up
-                    if self.is_tun0_interface_present():
-                        self.logger.info("tun0 interface is present. Sending payload.")
-                        payload = json.dumps(
-                            {
-                                "HardWareID": self.get_hw_id(),
-                                "object": {
-                                    "ParameterName": "Remote",
-                                    "Value": "1111",
-                                    "AlarmID": "8888"
-                                }
-                            }
-                        )
-                        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                    else:
-                        self.logger.info("tun0 interface is not present.")
+                elif access_value == "1":
+                    self.start_vpn_and_send_payload()
+                else:
+                    self.logger.info("Invalid access value.")
         else:
             self.logger.info("Access value not found in the JSON.")
 
