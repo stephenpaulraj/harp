@@ -77,12 +77,12 @@ class MQTTClient:
             if isinstance(json_data, bytes):
                 json_data = json_data.decode('utf-8')
 
-            self.logger.info(f"Received JSON data: {json_data}")
-
             data = json.loads(json_data)
 
             for obj_name, obj_data in data.items():
+                self.logger.info(f"serial No: {serial_number}")
                 if obj_data["SerialNumber"] == serial_number:
+                    self.logger.info(f"SerialNo Match: True")
                     return obj_data["HardwareID"]
 
         except json.JSONDecodeError as e:
@@ -135,6 +135,7 @@ class MQTTClient:
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         hw_id = self.find_hardware_id(m_decode, str(serial_id))
+
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
