@@ -80,7 +80,8 @@ class MQTTClient:
             data = json.loads(json_data)
 
             for obj_name, obj_data in data.items():
-                self.logger.info(f"serial No: {serial_number}")
+                sl_no = obj_data["SerialNumber"]
+                self.logger.info(f"serial No: {sl_no} : input {serial_number}")
                 if obj_data["SerialNumber"] == serial_number:
                     self.logger.info(f"SerialNo Match: True")
                     return obj_data["HardwareID"]
