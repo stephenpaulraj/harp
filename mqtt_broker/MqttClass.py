@@ -89,7 +89,7 @@ class MQTTClient:
 
         except json.JSONDecodeError as e:
             self.logger.info(f"Error decoding JSON: {e}")
-        return None
+            return None
 
     def get_remote(self, json_data):
         try:
