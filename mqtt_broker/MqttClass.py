@@ -23,6 +23,7 @@ class MQTTClient:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_publish = self.on_publish
+        self.should_exit = False
 
         self.connection_flag = False
 
@@ -35,6 +36,9 @@ class MQTTClient:
 
         self.client.tls_set_context(context=self.context)
         self.client.connect(self.broker_address, port=self.port, keepalive=1000)
+
+        while not self.connection_flag:
+            time.sleep(1)
 
         self.client.loop_start()
 
@@ -66,7 +70,7 @@ class MQTTClient:
         subprocess.Popen(['/home/pi/rmoteStart.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
         self.logger.info("Remote Access (VPN) Started")
 
-        timeout = 30
+        timeout = 2
         start_time = time.time()
         while not self.is_tun0_interface_present():
             time.sleep(1)
