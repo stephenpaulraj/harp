@@ -176,6 +176,7 @@ class MQTTClient:
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         access_value, hardware_id = self.get_remote(m_decode)
+        self.logger.info(f"The RAW value is: {m_decode}")
         if hardware_id == self.get_hw_id():
             self.logger.info(f"The HW is: {self.get_hw_id()}")
             if access_value is not None:
