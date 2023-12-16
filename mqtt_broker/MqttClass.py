@@ -72,7 +72,7 @@ class MQTTClient:
                 self.logger.error(f"Error checking tun0 interface: {e}")
                 return False
 
-    def find_hardware_id(self, serial_number, json_data):
+    def find_hardware_id(self, json_data, serial_number):
         try:
             if isinstance(json_data, bytes):
                 json_data = json_data.decode('utf-8')
@@ -81,11 +81,9 @@ class MQTTClient:
 
             data = json.loads(json_data)
 
-            for obj_key, obj_value in data.items():
-                self.logger.info(f"Comparing Serial Numbers: {obj_value['SerialNumber']} vs {serial_number}")
-                if obj_value["SerialNumber"] == str(serial_number):
-                    self.logger.info("Match found!")
-                    return obj_value["HardwareID"]
+            for obj_name, obj_data in data.items():
+                if obj_data["SerialNumber"] == serial_number:
+                    return obj_data["HardwareID"]
 
         except json.JSONDecodeError as e:
             self.logger.info(f"Error decoding JSON: {e}")
@@ -136,7 +134,7 @@ class MQTTClient:
     def process_hardwarelist(self, msg):
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        hw_id = self.find_hardware_id(serial_id, m_decode)
+        hw_id = self.find_hardware_id(m_decode, str(serial_id))
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
