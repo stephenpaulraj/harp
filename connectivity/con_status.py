@@ -59,7 +59,6 @@ def check_tun_status():
     output = (output.decode('ascii'))
 
 
-
 def connect_gsm():
     usb_devices = [f"/dev/ttyUSB{i}" for i in range(1, 21)]
     amc_devices = [f"/dev/ttyAMC{i}" for i in range(1, 21)]
