@@ -83,7 +83,7 @@ class MQTTClient:
 
             for obj_key, obj_value in data.items():
                 self.logger.info(f"Comparing Serial Numbers: {obj_value['SerialNumber']} vs {serial_number}")
-                if obj_value["SerialNumber"] == serial_number:
+                if obj_value["SerialNumber"] == str(serial_number):
                     self.logger.info("Match found!")
                     return obj_value["HardwareID"]
 
