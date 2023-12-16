@@ -38,8 +38,8 @@ def publish_payload_periodically(mqtt_ins, logg):
                 "AlarmID": "9999"
             }
         })
-        mqtt_ins.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-        logg.info("Connection Payload sent successfully.")
+        mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+        logger.info("Payload sent successfully.")
         time.sleep(10)
 
 
@@ -53,14 +53,16 @@ if __name__ == '__main__':
 
     if internet_status:
         mqtt_instance = MQTTClient(logger)
-
         publish_thread = threading.Thread(target=publish_payload_periodically, args=(mqtt_instance, logger))
         publish_thread.start()
 
         try:
-            mqtt_instance.client.loop_forever()
+            while True:
+                mqtt_instance.client.loop_forever()
+
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
+
         finally:
             mqtt_instance.should_exit = True
             publish_thread.join()
