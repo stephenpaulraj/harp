@@ -81,7 +81,6 @@ class MQTTClient:
 
             for obj_name, obj_data in data.items():
                 sl_no = obj_data["SerialNumber"]
-                self.logger.info(f"serial No: {sl_no} : input {serial_number}")
                 if int(obj_data["SerialNumber"]) == int(serial_number):
                     self.logger.info(f"SerialNo Match: True")
                     return obj_data["HardwareID"]
