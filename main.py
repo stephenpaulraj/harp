@@ -3,7 +3,6 @@ import os
 import threading
 import time
 
-from connectivity.ModemManagerClass import ModemManager
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 from log_helper import log_config
 from mqtt_broker.MqttClass import MQTTClient
@@ -43,6 +42,11 @@ def publish_payload_periodically(mqtt_ins, logg):
         time.sleep(10)
 
 
+def mqtt_loop(mqtt_ins):
+    while not mqtt_ins.should_exit:
+        mqtt_ins.client.loop(timeout=1.0, max_packets=1)
+
+
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     internet_status = check_internet_connection()
@@ -54,11 +58,14 @@ if __name__ == '__main__':
     if internet_status:
         mqtt_instance = MQTTClient(logger)
         publish_thread = threading.Thread(target=publish_payload_periodically, args=(mqtt_instance, logger))
+        loop_thread = threading.Thread(target=mqtt_loop, args=(mqtt_instance,))
+
         publish_thread.start()
+        loop_thread.start()
 
         try:
             while not mqtt_instance.should_exit:
-                mqtt_instance.client.loop(timeout=1.0, max_packets=1)  # Adjust timeout as needed
+                time.sleep(1)
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
@@ -66,37 +73,10 @@ if __name__ == '__main__':
         finally:
             mqtt_instance.should_exit = True
             publish_thread.join()
+            loop_thread.join()
             mqtt_instance.client.disconnect()
             mqtt_instance.client.loop_stop()
 
-        # active_interface = get_active_network_interface()
-        # if active_interface:
-        #     logger.info(f"Active network interface: {active_interface}")
-        #     if active_interface == 'usb0':
-        #         modem_manager = ModemManager()
-        #         logger.info("Modem Index:", modem_manager.modem_index)
-        #         enable_result = modem_manager.enable_modem()
-        #         logger.info("Enable Result:", enable_result)
-        #         modem_info = modem_manager.get_modem_info()
-        #         logger.info("Modem Information:")
-        #         logger.info(json.dumps(modem_info, indent=2))
-        #
-        #         internet_status = modem_manager.get_internet_status()
-        #         logger.info("Internet Status:")
-        #         logger.info(json.dumps(internet_status, indent=2))
-        #
-        #         usb_device = ["/dev/ttyUSB2"]
-        #         amc_device = ["/dev/ttyACM0"]
-        #         check_usb = find_gsm_device_type(usb_device)
-        #         check_amc = find_gsm_device_type(amc_device)
-        #         if check_usb:
-        #             logger.info(f'GSM Device attached to - {usb_device[0]}')
-        #         elif check_amc:
-        #             logger.info(f'GSM Device attached to - {amc_device[0]}')
-        #         else:
-        #             logger.info(f'No GSM Device Connected')
-        # else:
-        #     logger.info("No active network interface found.")
     elif not internet_status:
         logger.info(f'Not connected to Internet')
     else:
