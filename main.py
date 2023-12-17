@@ -38,7 +38,8 @@ if __name__ == '__main__':
         mqtt_instance = MQTTClient(logger)
 
         try:
-            pass
+            while True:
+                pass
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
