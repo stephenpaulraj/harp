@@ -14,6 +14,8 @@ from pyroute2 import IPDB
 
 class MQTTClient:
     def __init__(self, logger):
+        self.should_exit = False
+
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
         self.broker_address = "b-4d9d7a54-2795-4ab2-b1e7-c40ddf1113f7-1.mq.us-east-1.amazonaws.com"
@@ -40,7 +42,7 @@ class MQTTClient:
         self.client.loop_start()
 
         self.scheduler = sched.scheduler(time.time, time.sleep)
-        self.publish_interval = 10  # seconds
+        self.publish_interval = 10
         self.schedule_publish()
 
     def get_serial_id(self):
@@ -165,13 +167,18 @@ class MQTTClient:
         pass
 
     def publish_message(self):
-        message = "Test"
+        payload = {"ste": "hey"}
+        message = json.dumps(payload)
         self.client.publish("test", message)
+        self.schedule_publish()
         self.logger.info(f"Message send : {message}")
 
     def schedule_publish(self):
         self.scheduler.enter(self.publish_interval, 1, self.publish_message, ())
-        self.scheduler.run()
+
+    def run_forever(self):
+        while not self.should_exit:
+            self.client.loop(timeout=1)
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
