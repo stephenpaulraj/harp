@@ -1,8 +1,6 @@
 import json
 import os
 import subprocess
-import time
-
 import paho.mqtt.client as mqtt
 import ssl
 from pyroute2 import IPRoute
@@ -23,7 +21,6 @@ class MQTTClient:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_publish = self.on_publish
-        self.should_exit = False
 
         self.connection_flag = False
 
@@ -38,6 +35,75 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
+
+    def get_serial_id(self):
+        try:
+            with open('/home/pi/serialid.txt', 'r') as f:
+                SerialNumber = f.read()
+            return SerialNumber
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/serialid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading serial id: {e}")
+            return None
+
+    def get_hw_id(self):
+        try:
+            with open('/home/pi/hardwareid.txt', 'r') as f:
+                HwId = f.read()
+            return HwId
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/hardwareid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading hardware id: {e}")
+            return None
+
+    def check_connection(self):
+        return self.connection_flag and self.client.is_connected()
+
+    def is_tun0_interface_present(self):
+        with IPRoute() as ipr:
+            try:
+                tun0_interface = ipr.link_lookup(ifname='tun0')
+                return bool(tun0_interface)
+            except Exception as e:
+                self.logger.error(f"Error checking tun0 interface: {e}")
+                return False
+
+    def find_hardware_id(self, json_data, serial_number):
+        try:
+            if isinstance(json_data, bytes):
+                json_data = json_data.decode('utf-8')
+
+            data = json.loads(json_data)
+
+            for obj_name, obj_data in data.items():
+                sl_no = obj_data["SerialNumber"]
+                self.logger.info(f"serial No: {sl_no} : input {serial_number}")
+                if int(obj_data["SerialNumber"]) == int(serial_number):
+                    self.logger.info(f"SerialNo Match: True")
+                    return obj_data["HardwareID"]
+
+        except json.JSONDecodeError as e:
+            self.logger.info(f"Error decoding JSON: {e}")
+            return None
+
+    def get_remote(self, json_data):
+        try:
+            data = json.loads(json_data)
+            if "object" in data:
+                object_data = data["object"]
+
+                if "Access" in object_data and "HardWareID" in data:
+                    access_value = object_data["Access"]
+                    hardware_id = data["HardWareID"]
+                    hw_id = str(hardware_id)
+                    return access_value, hw_id
+
+        except json.JSONDecodeError as e:
+            self.logger.info(f"Error decoding JSON: {e}")
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -66,100 +132,6 @@ class MQTTClient:
         elif topic == "network":
             self.process_network(msg)
 
-    def on_publish(self, client, userdata, mid):
-        self.logger.info("Message Published")
-
-    def get_serial_id(self):
-        try:
-            with open('/home/pi/serialid.txt', 'r') as f:
-                SerialNumber = f.read()
-            return SerialNumber
-        except FileNotFoundError:
-            self.logger.error("File not found: /home/pi/serialid.txt")
-            return None
-        except Exception as e:
-            self.logger.error(f"Error reading serial id: {e}")
-            return None
-
-    def get_hw_id(self):
-        try:
-            with open('/home/pi/hardwareid.txt', 'r') as f:
-                HwId = f.read()
-            return HwId
-        except FileNotFoundError:
-            self.logger.error("File not found: /home/pi/hardwareid.txt")
-            return None
-        except Exception as e:
-            self.logger.error(f"Error reading hardware id: {e}")
-            return None
-
-    def start_vpn_and_send_payload(self):
-        subprocess.Popen(['/home/pi/rmoteStart.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         stdin=subprocess.PIPE, shell=True)
-        self.logger.info("Remote Access (VPN) Started")
-
-        timeout = 2
-        start_time = time.time()
-        while not self.is_tun0_interface_present():
-            time.sleep(1)
-            if time.time() - start_time > timeout:
-                self.logger.error("Timeout waiting for tun0 interface to be up.")
-                return
-
-        self.logger.info("tun0 interface is present. Sending payload.")
-        payload = json.dumps({
-            "HardWareID": self.get_hw_id(),
-            "object": {
-                "ParameterName": "Remote",
-                "Value": "1111",
-                "AlarmID": "8888"
-            }
-        })
-        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-        self.logger.info("Payload sent successfully.")
-
-    def check_connection(self):
-        return self.connection_flag and self.client.is_connected()
-
-    def is_tun0_interface_present(self):
-        with IPRoute() as ipr:
-            try:
-                tun0_interface = ipr.link_lookup(ifname='tun0')
-                return bool(tun0_interface)
-            except Exception as e:
-                self.logger.error(f"Error checking tun0 interface: {e}")
-                return False
-
-    def find_hardware_id(self, json_data, serial_number):
-        try:
-            if isinstance(json_data, bytes):
-                json_data = json_data.decode('utf-8')
-
-            data = json.loads(json_data)
-
-            for obj_name, obj_data in data.items():
-                if int(obj_data["SerialNumber"]) == int(serial_number):
-                    return obj_data["HardwareID"]
-
-        except json.JSONDecodeError as e:
-            self.logger.info(f"Error decoding JSON: {e}")
-            return None
-
-    def get_remote(self, json_data):
-        try:
-            data = json.loads(json_data)
-            if "object" in data:
-                object_data = data["object"]
-
-                if "Access" in object_data and "HardWareID" in data:
-                    access_value = object_data["Access"]
-                    hardware_id = data["HardWareID"]
-                    hw_id = str(hardware_id)
-                    return access_value, hw_id
-
-        except json.JSONDecodeError as e:
-            self.logger.info(f"Error decoding JSON: {e}")
-
     def process_hardwarelist(self, msg):
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -181,7 +153,6 @@ class MQTTClient:
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         access_value, hardware_id = self.get_remote(m_decode)
-        self.logger.info(f"The RAW value is: {m_decode}")
         if hardware_id == self.get_hw_id():
             self.logger.info(f"The HW is: {self.get_hw_id()}")
             if access_value is not None:
@@ -189,12 +160,30 @@ class MQTTClient:
                 if access_value == "0":
                     os.popen('/home/pi/rmoteStop.sh')
                     self.logger.info(f"Remote Access (VPN) Stopped")
-                elif access_value == "1":
-                    self.start_vpn_and_send_payload()
-                else:
-                    self.logger.info("Invalid access value.")
+                if access_value == "1":
+                    os.popen('/home/pi/rmoteStart.sh')
+                    self.logger.info(f"Remote Access (VPN) Started")
+                    # find Tun0 available (send Payload) tun0 i up
+                    if self.is_tun0_interface_present():
+                        self.logger.info("tun0 interface is present. Sending payload.")
+                        payload = json.dumps(
+                            {
+                                "HardWareID": self.get_hw_id(),
+                                "object": {
+                                    "ParameterName": "Remote",
+                                    "Value": "1111",
+                                    "AlarmID": "8888"
+                                }
+                            }
+                        )
+                        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    else:
+                        self.logger.info("tun0 interface is not present.")
         else:
             self.logger.info("Access value not found in the JSON.")
 
     def process_network(self, msg):
         pass
+
+    def on_publish(self, client, userdata, mid):
+        self.logger.info("Message Published")
