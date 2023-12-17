@@ -1,6 +1,9 @@
 import json
 import os
+import sched
 import subprocess
+import time
+
 import paho.mqtt.client as mqtt
 import ssl
 from pyroute2 import IPRoute
@@ -35,6 +38,10 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
+
+        self.scheduler = sched.scheduler(time.time, time.sleep)
+        self.publish_interval = 10  # seconds
+        self.schedule_publish()
 
     def get_serial_id(self):
         try:
@@ -104,33 +111,6 @@ class MQTTClient:
         except json.JSONDecodeError as e:
             self.logger.info(f"Error decoding JSON: {e}")
 
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            self.connection_flag = True
-            self.logger.info("Connected to MQTT broker")
-        else:
-            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
-
-        client.subscribe('hardwarelist')
-        client.subscribe('remote-access')
-        client.subscribe('network')
-        client.subscribe('web-Alarms')
-        client.subscribe('web-hardwarestatus')
-
-    def on_message(self, client, userdata, msg):
-        topic = msg.topic
-        self.logger.info(f"Received message on topic {topic}")
-        if topic == "hardwarelist":
-            self.process_hardwarelist(msg)
-        elif topic == "web-hardwarestatus":
-            self.process_web_hardwarestatus(msg)
-        elif topic == "web-Alarms":
-            self.process_web_alarms(msg)
-        elif topic == "remote-access":
-            self.process_remote_access(msg)
-        elif topic == "network":
-            self.process_network(msg)
-
     def process_hardwarelist(self, msg):
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -183,6 +163,42 @@ class MQTTClient:
 
     def process_network(self, msg):
         pass
+
+    def publish_message(self):
+        message = "Test"
+        self.client.publish("test", message)
+        self.logger.info(f"Message send : {message}")
+
+    def schedule_publish(self):
+        self.scheduler.enter(self.publish_interval, 1, self.publish_message, ())
+        self.scheduler.run()
+
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self.connection_flag = True
+            self.logger.info("Connected to MQTT broker")
+        else:
+            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
+
+        client.subscribe('hardwarelist')
+        client.subscribe('remote-access')
+        client.subscribe('network')
+        client.subscribe('web-Alarms')
+        client.subscribe('web-hardwarestatus')
+
+    def on_message(self, client, userdata, msg):
+        topic = msg.topic
+        self.logger.info(f"Received message on topic {topic}")
+        if topic == "hardwarelist":
+            self.process_hardwarelist(msg)
+        elif topic == "web-hardwarestatus":
+            self.process_web_hardwarestatus(msg)
+        elif topic == "web-Alarms":
+            self.process_web_alarms(msg)
+        elif topic == "remote-access":
+            self.process_remote_access(msg)
+        elif topic == "network":
+            self.process_network(msg)
 
     def on_publish(self, client, userdata, mid):
         self.logger.info("Message Published")
