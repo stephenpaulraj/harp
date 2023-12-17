@@ -35,9 +35,8 @@ class MQTTClient:
         self.context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
         self.client.tls_set_context(context=self.context)
-        self.client.connect(self.broker_address, port=self.port, keepalive=20)
+        self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
-        time.sleep(5)
         self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
@@ -95,7 +94,8 @@ class MQTTClient:
             return None
 
     def start_vpn_and_send_payload(self):
-        subprocess.Popen(['/home/pi/rmoteStart.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+        subprocess.Popen(['/home/pi/rmoteStart.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         stdin=subprocess.PIPE, shell=True)
         self.logger.info("Remote Access (VPN) Started")
 
         timeout = 2
@@ -160,8 +160,6 @@ class MQTTClient:
         except json.JSONDecodeError as e:
             self.logger.info(f"Error decoding JSON: {e}")
 
-
-
     def process_hardwarelist(self, msg):
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -200,5 +198,3 @@ class MQTTClient:
 
     def process_network(self, msg):
         pass
-
-
