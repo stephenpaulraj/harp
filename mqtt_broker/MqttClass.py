@@ -2,6 +2,7 @@ import json
 import os
 import sched
 import subprocess
+import threading
 import time
 
 import paho.mqtt.client as mqtt
@@ -15,6 +16,7 @@ from pyroute2 import IPDB
 class MQTTClient:
     def __init__(self, logger):
         self.should_exit = False
+        self.publish_event = threading.Event()
 
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
@@ -170,15 +172,27 @@ class MQTTClient:
         payload = {"ste": "hey"}
         message = json.dumps(payload)
         self.client.publish("test", message)
-        self.schedule_publish()
-        self.logger.info(f"Message send : {message}")
+        self.logger.info(f"Message send: {message}")
 
     def schedule_publish(self):
         self.scheduler.enter(self.publish_interval, 1, self.publish_message, ())
+        self.publish_event.set()
+
+    def publishing_thread(self):
+        while not self.should_exit:
+            self.publish_event.wait()
+            self.publish_event.clear()
+            self.client.loop(timeout=1)
 
     def run_forever(self):
+        publishing_thread = threading.Thread(target=self.publishing_thread)
+        publishing_thread.daemon = True
+        publishing_thread.start()
+
         while not self.should_exit:
             self.client.loop(timeout=1)
+
+        publishing_thread.join()
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
