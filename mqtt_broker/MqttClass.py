@@ -190,7 +190,7 @@ class MQTTClient:
         publishing_thread.start()
 
         while not self.should_exit:
-            self.client.loop(timeout=1)
+            time.sleep(1)
 
         publishing_thread.join()
 
