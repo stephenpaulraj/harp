@@ -50,9 +50,9 @@ if __name__ == '__main__':
                         "AlarmID": "9999"
                     }
                 })
-                mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                logger.info("Payload sent successfully.")
-                time.sleep(10)
+                # mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                # logger.info("Payload sent successfully.")
+                # time.sleep(10)
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
