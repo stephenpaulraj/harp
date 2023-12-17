@@ -40,6 +40,36 @@ class MQTTClient:
         time.sleep(5)
         self.client.loop_start()
 
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self.connection_flag = True
+            self.logger.info("Connected to MQTT broker")
+        else:
+            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
+
+        client.subscribe('hardwarelist')
+        client.subscribe('remote-access')
+        client.subscribe('network')
+        client.subscribe('web-Alarms')
+        client.subscribe('web-hardwarestatus')
+
+    def on_message(self, client, userdata, msg):
+        topic = msg.topic
+        self.logger.info(f"Received message on topic {topic}")
+        if topic == "hardwarelist":
+            self.process_hardwarelist(msg)
+        elif topic == "web-hardwarestatus":
+            self.process_web_hardwarestatus(msg)
+        elif topic == "web-Alarms":
+            self.process_web_alarms(msg)
+        elif topic == "remote-access":
+            self.process_remote_access(msg)
+        elif topic == "network":
+            self.process_network(msg)
+
+    def on_publish(self, client, userdata, mid):
+        self.logger.info("Message Published")
+
     def get_serial_id(self):
         try:
             with open('/home/pi/serialid.txt', 'r') as f:
@@ -130,32 +160,7 @@ class MQTTClient:
         except json.JSONDecodeError as e:
             self.logger.info(f"Error decoding JSON: {e}")
 
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            self.connection_flag = True
-            self.logger.info("Connected to MQTT broker")
-        else:
-            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
 
-        client.subscribe('hardwarelist')
-        client.subscribe('remote-access')
-        client.subscribe('network')
-        client.subscribe('web-Alarms')
-        client.subscribe('web-hardwarestatus')
-
-    def on_message(self, client, userdata, msg):
-        topic = msg.topic
-        self.logger.info(f"Received message on topic {topic}")
-        if topic == "hardwarelist":
-            self.process_hardwarelist(msg)
-        elif topic == "web-hardwarestatus":
-            self.process_web_hardwarestatus(msg)
-        elif topic == "web-Alarms":
-            self.process_web_alarms(msg)
-        elif topic == "remote-access":
-            self.process_remote_access(msg)
-        elif topic == "network":
-            self.process_network(msg)
 
     def process_hardwarelist(self, msg):
         serial_id = self.get_serial_id()
@@ -196,5 +201,4 @@ class MQTTClient:
     def process_network(self, msg):
         pass
 
-    def on_publish(self, client, userdata, mid):
-        self.logger.info("Message Published")
+

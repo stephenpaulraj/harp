@@ -26,27 +26,6 @@ def find_gsm_device_type(device_paths):
     return any(os.path.exists(path) for path in device_paths)
 
 
-def publish_payload_periodically(mqtt_ins, logg):
-    hw_id = get_hw_id(logg)
-    while not mqtt_ins.should_exit:
-        payload = json.dumps({
-            "HardWareID": int(hw_id),
-            "object": {
-                "ParameterName": "Connection",
-                "Value": "1111",
-                "AlarmID": "9999"
-            }
-        })
-        mqtt_ins.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-        logg.info("Payload sent successfully.")
-        time.sleep(10)
-
-
-def mqtt_loop(mqtt_ins):
-    while not mqtt_ins.should_exit:
-        mqtt_ins.client.loop(timeout=1.0, max_packets=1)
-
-
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     internet_status = check_internet_connection()
@@ -57,23 +36,29 @@ if __name__ == '__main__':
 
     if internet_status:
         mqtt_instance = MQTTClient(logger)
-        publish_thread = threading.Thread(target=publish_payload_periodically, args=(mqtt_instance, logger))
-        loop_thread = threading.Thread(target=mqtt_loop, args=(mqtt_instance,))
-
-        publish_thread.start()
-        loop_thread.start()
 
         try:
             while not mqtt_instance.should_exit:
-                time.sleep(1)
+                mqtt_instance.client.loop(timeout=1.0, max_packets=1)
+
+                hw_id = get_hw_id(logger)
+                payload = json.dumps({
+                    "HardWareID": int(hw_id),
+                    "object": {
+                        "ParameterName": "Connection",
+                        "Value": "1111",
+                        "AlarmID": "9999"
+                    }
+                })
+                mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                logger.info("Payload sent successfully.")
+                time.sleep(10)
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
 
         finally:
             mqtt_instance.should_exit = True
-            publish_thread.join()
-            loop_thread.join()
             mqtt_instance.client.disconnect()
             mqtt_instance.client.loop_stop()
 
@@ -81,3 +66,4 @@ if __name__ == '__main__':
         logger.info(f'Not connected to Internet')
     else:
         logger.info(f'Internet status not known')
+
