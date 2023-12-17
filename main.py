@@ -38,21 +38,7 @@ if __name__ == '__main__':
         mqtt_instance = MQTTClient(logger)
 
         try:
-            while not mqtt_instance.should_exit:
-                mqtt_instance.client.loop(timeout=1.0, max_packets=1)
-
-                hw_id = get_hw_id(logger)
-                payload = json.dumps({
-                    "HardWareID": int(hw_id),
-                    "object": {
-                        "ParameterName": "Connection",
-                        "Value": "1111",
-                        "AlarmID": "9999"
-                    }
-                })
-                # mqtt_instance.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                # logger.info("Payload sent successfully.")
-                # time.sleep(10)
+            pass
 
         except KeyboardInterrupt:
             logger.info("Exiting gracefully...")
