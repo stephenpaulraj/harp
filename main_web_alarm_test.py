@@ -73,9 +73,9 @@ class MQTTClient:
                 if data_type == 1:
                     mod_data = c.read_holding_registers(int(value['Address']), 1)
                     self.logger.info(f"DataType 1 is {mod_data}")
-                # elif data_type == 2:
-                #     # mod_data = c.read_holding_registers(int(value['Address']), 1)
-                #     self.logger.info(f"DataType 2 is {int(value['Address'])}")
+                elif data_type == 2:
+                    mod_data = c.read_holding_registers(int(value['Address']), 1)
+                    self.logger.info(f"DataType 2 is {mod_data}")
                 elif data_type == 3:
                     mod_data = c.read_holding_registers(int(value['Address']), 1)
                     self.logger.info(f"DataType 3 is {mod_data} ")
