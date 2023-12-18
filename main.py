@@ -15,7 +15,6 @@ from log_helper import log_config
 class MQTTClient:
     def __init__(self, logger):
         self.should_exit = False
-
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
         self.broker_address = "b-4d9d7a54-2795-4ab2-b1e7-c40ddf1113f7-1.mq.us-east-1.amazonaws.com"
@@ -141,6 +140,12 @@ class MQTTClient:
 
     def process_web_alarms(self, msg):
         pass
+        # m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        # data = json.loads(m_decode)
+        # self.logger.info(f'The HW : {data.get("HardwareID")}')
+
+        # with open("/home/pi/sample.json", "w") as outfile:
+        #     json.dump(data, outfile)
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
