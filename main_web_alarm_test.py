@@ -4,6 +4,7 @@ import threading
 import time
 
 from pyModbusTCP.client import ModbusClient
+from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
 import ssl
@@ -62,6 +63,13 @@ class MQTTClient:
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
 
+    def convertion_for_float(self, mod_data):
+        if mod_data:
+            float_values = [decode_ieee(f) for f in word_list_to_long(mod_data)]
+            return float_values
+        else:
+            return None
+
     def web_alarm_get_data(self):
         if self.is_eth1_interface_present():
             c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=False, debug=False)
@@ -78,8 +86,9 @@ class MQTTClient:
                         mod_data = c.read_holding_registers(int(value['Address']), 1)
                         self.logger.info(f"DataType 2 is {mod_data}")
                     elif data_type == 3:
-                        mod_data = c.read_holding_registers(int(value['Address']), 1)
-                        self.logger.info(f"DataType 3 is {mod_data} ")
+                        mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
+                        con_mod_data = self.convertion_for_float(mod_data)
+                        self.logger.info(f"DataType 3 is {con_mod_data} ")
                     else:
                         self.logger.info(f"{key} has an unknown DataType: {data_type}")
 
