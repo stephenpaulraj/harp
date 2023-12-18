@@ -111,10 +111,9 @@ class MQTTClient:
         while not self.should_exit:
             time.sleep(10)
             if self.connection_flag:
-                id = int(36)
                 payload = json.dumps(
                     {
-                        "HardWareID": id,
+                        "HardWareID": self.get_hw_id(),
                         "object": {
                             "ParameterName": "Connection",
                             "Value": "1111",
@@ -161,7 +160,7 @@ class MQTTClient:
                         self.logger.info("tun0 interface is present. Sending payload.")
                         payload = json.dumps(
                             {
-                                "HardWareID": self.get_hw_id(),
+                                "HardWareID": int(self.get_hw_id()),
                                 "object": {
                                     "ParameterName": "Remote",
                                     "Value": "1111",
