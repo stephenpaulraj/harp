@@ -58,7 +58,7 @@ class MQTTClient:
         data = json.loads(m_decode)
         self.logger.info(f'The HW : {data.get("HardwareID")}')
 
-        if int(data.get("HardwareID")) == 34:
+        if int(data.get("HardwareID")) == 35:
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
 
