@@ -105,7 +105,6 @@ class MQTTClient:
             data = json.loads(json_data)
             if "object" in data:
                 object_data = data["object"]
-
                 if "Access" in object_data and "HardWareID" in data:
                     access_value = object_data["Access"]
                     hardware_id = data["HardWareID"]
