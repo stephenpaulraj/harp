@@ -63,24 +63,25 @@ class MQTTClient:
                 json.dump(data, outfile)
 
     def web_alarm_get_data(self):
-        c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=False, debug=False)
-        with open('dummy_data/sample.json', 'r') as file:
-            json_data = file.read()
-        data = json.loads(json_data)
-        for key, value in data.items():
-            if isinstance(value, dict) and "DataType" in value:
-                data_type = int(value["DataType"])
-                if data_type == 1:
-                    mod_data = c.read_holding_registers(int(value['Address']), 1)
-                    self.logger.info(f"DataType 1 is {mod_data}")
-                elif data_type == 2:
-                    mod_data = c.read_holding_registers(int(value['Address']), 1)
-                    self.logger.info(f"DataType 2 is {mod_data}")
-                elif data_type == 3:
-                    mod_data = c.read_holding_registers(int(value['Address']), 1)
-                    self.logger.info(f"DataType 3 is {mod_data} ")
-                else:
-                    self.logger.info(f"{key} has an unknown DataType: {data_type}")
+        if self.is_eth1_interface_present():
+            c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=False, debug=False)
+            with open('dummy_data/sample.json', 'r') as file:
+                json_data = file.read()
+            data = json.loads(json_data)
+            for key, value in data.items():
+                if isinstance(value, dict) and "DataType" in value:
+                    data_type = int(value["DataType"])
+                    if data_type == 1:
+                        mod_data = c.read_holding_registers(int(value['Address']), 1)
+                        self.logger.info(f"DataType 1 is {mod_data}")
+                    elif data_type == 2:
+                        mod_data = c.read_holding_registers(int(value['Address']), 1)
+                        self.logger.info(f"DataType 2 is {mod_data}")
+                    elif data_type == 3:
+                        mod_data = c.read_holding_registers(int(value['Address']), 1)
+                        self.logger.info(f"DataType 3 is {mod_data} ")
+                    else:
+                        self.logger.info(f"{key} has an unknown DataType: {data_type}")
 
     def periodic_update(self):
         while not self.should_exit:
