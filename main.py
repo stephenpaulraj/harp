@@ -1,63 +1,97 @@
 import json
-import os
 import threading
 import time
 
+import paho.mqtt.client as mqtt
+import ssl
+import uuid
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 from log_helper import log_config
-from mqtt_broker.MqttClass import MQTTClient
-from system.SytemInfoClass import SystemInfoCollector
 
 
-def get_hw_id(logg):
-    try:
-        with open('/home/pi/hardwareid.txt', 'r') as f:
-            HwId = f.read()
-        return HwId
-    except FileNotFoundError:
-        logg.error("File not found: /home/pi/hardwareid.txt")
-        return None
-    except Exception as e:
-        logg.error(f"Error reading hardware id: {e}")
-        return None
+class MQTTClient:
+    def __init__(self, logger):
+        self.should_exit = False
 
+        self.logger = logger
+        self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
+        self.broker_address = "b-4d9d7a54-2795-4ab2-b1e7-c40ddf1113f7-1.mq.us-east-1.amazonaws.com"
+        self.port = 8883
+        self.user = "ehashmq1"
+        self.password = "eHash@12mqtt34!"
 
-def find_gsm_device_type(device_paths):
-    return any(os.path.exists(path) for path in device_paths)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.client.on_publish = self.on_publish
+
+        self.connection_flag = False
+
+        self.client.username_pw_set(self.user, password=self.password)
+
+        self.context = ssl.create_default_context()
+        self.context.check_hostname = False
+        self.context.verify_mode = ssl.CERT_REQUIRED
+        self.context.load_verify_locations(cafile="AmazonRootCA1.pem")
+
+        self.client.tls_set_context(context=self.context)
+        self.client.connect(self.broker_address, port=self.port, keepalive=60)
+
+        self.client.loop_start()
+
+        self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
+        self.periodic_update_thread.start()
+
+    def periodic_update(self):
+        while not self.should_exit:
+            time.sleep(10)
+            if self.connection_flag:
+                id = int(36)
+                payload = json.dumps(
+                    {
+                        "HardWareID": id,
+                        "object": {
+                            "ParameterName": "Connection",
+                            "Value": "1111",
+                            "AlarmID": "9999"
+                        }
+                    }
+                )
+                self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                self.logger.info(f"Message send: {payload}")
+
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self.connection_flag = True
+            self.logger.info("Connected to MQTT broker")
+        else:
+            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
+
+        client.subscribe('hardwarelist')
+        client.subscribe('remote-access')
+        client.subscribe('network')
+        client.subscribe('web-Alarms')
+        client.subscribe('web-hardwarestatus')
+
+    def on_message(self, client, userdata, msg):
+        topic = msg.topic
+        self.logger.info(f"Received message on topic {topic}")
+
+    def on_publish(self, client, userdata, mid):
+        self.logger.info("Message Published")
 
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     internet_status = check_internet_connection()
 
-    info_collector = SystemInfoCollector()
-    info_collector.collect_info()
-    json_data = info_collector.to_json()
-
-    mqtt_instance = MQTTClient(logger)
-    mqtt_thread = threading.Thread(target=lambda: mqtt_instance.client.loop_forever())
-    mqtt_thread.daemon = True
-
     if internet_status:
         mqtt_instance = MQTTClient(logger)
-
         try:
-            mqtt_thread.start()
-
             while True:
                 pass
 
         except KeyboardInterrupt:
-            logger.info("Exiting gracefully...")
-
-        finally:
             mqtt_instance.should_exit = True
-            mqtt_instance.client.disconnect()
-            mqtt_instance.client.loop_stop()
-            mqtt_thread.join()
-
-    elif not internet_status:
-        logger.info(f'Not connected to Internet')
-    else:
-        logger.info(f'Internet status not known')
+            mqtt_instance.periodic_update_thread.join()
+            logger.info("Exiting gracefully...")
 
