@@ -155,7 +155,6 @@ class MQTTClient:
                             mod_data = c.read_holding_registers(int(value['Address']), 1 * 2)
                             con_mod_data = self.convertion_for_float(mod_data)
                             # mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            self.logger.info(f'Float length : {len(con_mod_data)}')
                             self.logger.info(f'Float value : {con_mod_data[0]}')
                             # output_object["value"] = mod_data[0]
                         # elif data_type == 2:
@@ -178,7 +177,7 @@ class MQTTClient:
 
     def periodic_update(self):
         while not self.should_exit:
-            time.sleep(30)
+            time.sleep(10)
             if self.connection_flag:
                 payload = json.dumps(
                     {
