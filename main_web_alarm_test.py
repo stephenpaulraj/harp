@@ -152,10 +152,11 @@ class MQTTClient:
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
                             i_mod_data = intC(mod_data)
-                            if i_mod_data is not None:
-                                self.logger.info(f'Int value : {i_mod_data}')
-                            else:
+                            if i_mod_data is None:
                                 self.logger.info(f'Int value : 0')
+                            else:
+                                self.logger.info(f'Int value : {i_mod_data}')
+
                             # # con_mod_data = self.convertion_for_float(mod_data)
                             # # mod_data = c.read_holding_registers(int(value['Address']), 1)
                             # self.logger.info(f'Int value : {mod_data[0]}')
@@ -164,12 +165,14 @@ class MQTTClient:
                         # mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
                         # str_data = [str(item) for item in mod_data]
                         # output_object["value"] = str_data
-                        # elif data_type == 3:
-                        # self.logger.info(f'Address value : {int(value["Address"]) - 1}')
-                        # mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
-                        # con_mod_data = self.convertion_for_float(mod_data)
-                        # self.logger.info(f'Int value : {con_mod_data[0]}')
-                        # output_object["value"] = con_mod_data[0]
+                        elif data_type == 3:
+                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
+                            con_mod_data = self.convertion_for_float(mod_data)
+                            i_mod_float_data = floatC(con_mod_data)
+                            if i_mod_float_data is None:
+                                self.logger.info(f'Float value : 0.0')
+                            else:
+                                self.logger.info(f'Float value : {i_mod_float_data}')
                         # else:
                         #     self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
