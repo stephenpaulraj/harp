@@ -153,7 +153,7 @@ class MQTTClient:
                         data_type = int(value["DataType"])
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            self.logger.info(f'Int value : {str(mod_data[0])}')
+                            self.logger.info(f'Int value : {str(mod_data)}')
                             output_object["value"] = mod_data[0]
                         elif data_type == 2:
                             mod_data = c.read_holding_registers(int(value['Address']), 1)
