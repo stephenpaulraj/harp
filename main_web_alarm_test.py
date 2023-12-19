@@ -144,12 +144,12 @@ class MQTTClient:
             output_data = {"HardWareID": self.get_hw_id()}
             for key, value in data.items():
                 if key != "HardwareID":
-                    self.logger.info(f'Parameter: {value["ParameterName"]}')
-                # output_object = {
-                #     "Description": "111",
-                #     "ParameterName": value["ParameterName"],
-                #     "AlarmID": value["AlarmID"]
-                # }
+                    output_object = {
+                        "Description": "111",
+                        "ParameterName": value["ParameterName"],
+                        "AlarmID": value["AlarmID"]
+                    }
+
                 # if isinstance(value, dict) and "DataType" in value:
                 #     data_type = int(value["DataType"])
                 #     if data_type == 1:
@@ -170,9 +170,12 @@ class MQTTClient:
                 #         self.logger.info(f"DataType 3 is {float_data} ")
                 #     else:
                 #         self.logger.info(f"{key} has an unknown DataType: {data_type}")
-            #     output_data[key] = output_object
-            # with open('dummy_data/payload.json', 'w') as output_file:
-            #     json.dump(output_data, output_file, indent=2)
+
+                    output_data[key] = output_object
+            with open('dummy_data/payload.json', 'w') as output_file:
+                json.dump(output_data, output_file, indent=2)
+
+            self.logger.info(f'To send Payload : {json.dumps(output_data)}')
 
     def periodic_update(self):
         while not self.should_exit:
