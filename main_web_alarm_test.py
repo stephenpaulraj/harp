@@ -163,9 +163,13 @@ class MQTTClient:
                         elif data_type == 3:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
                             con_mod_data = self.convertion_for_float(mod_data)
-                            float_string = [str(value) if value is not None else '0.0' for value in con_mod_data]
-                            result_string = ', '.join(float_string)
-                            self.logger.info(f'Float values: {result_string}')
+                            if con_mod_data is not None:
+                                float_strings = [str(value) if value is not None else '0.0' for value in con_mod_data]
+                                result_string = ', '.join(float_strings)
+                                self.logger.info(f'Float values: {result_string}')
+                            else:
+                                self.logger.info('Float values: 0.0')
+
                         # else:
                         #     self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
