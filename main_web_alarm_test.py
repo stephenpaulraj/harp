@@ -169,9 +169,9 @@ class MQTTClient:
                 #         self.logger.info(f"DataType 3 is {float_data} ")
                 #     else:
                 #         self.logger.info(f"{key} has an unknown DataType: {data_type}")
-                output_data[key] = output_object
-            with open('dummy_data/payload.json', 'w') as output_file:
-                json.dump(output_data, output_file, indent=2)
+            #     output_data[key] = output_object
+            # with open('dummy_data/payload.json', 'w') as output_file:
+            #     json.dump(output_data, output_file, indent=2)
 
     def periodic_update(self):
         while not self.should_exit:
