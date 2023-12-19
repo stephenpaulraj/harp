@@ -23,12 +23,10 @@ def floatC(inp):
 
 
 def intC(inp):
-    t = []
     s = str(inp)
     a_string = "".join(s)
     result = str(a_string)
-    t.append(result)
-    return t
+    return result
 
 
 class MQTTClient:
@@ -155,7 +153,7 @@ class MQTTClient:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
                             i_mod_data = intC(mod_data)
                             # self.logger.info(f'RAW Int value : {mod_data[0]}')
-                            self.logger.info(f'Int value : {i_mod_data[0]}')
+                            self.logger.info(f'Int value : {i_mod_data}')
                             # # con_mod_data = self.convertion_for_float(mod_data)
                             # # mod_data = c.read_holding_registers(int(value['Address']), 1)
                             # self.logger.info(f'Int value : {mod_data[0]}')
