@@ -150,16 +150,10 @@ class MQTTClient:
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
                             i_mod_data = str(mod_data[0]) if mod_data is not None else '0.0'
+                            output_object["value"] = i_mod_data
                             self.logger.info(f'Int value : {i_mod_data}')
-
-                            # # con_mod_data = self.convertion_for_float(mod_data)
-                            # # mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            # self.logger.info(f'Int value : {mod_data[0]}')
-                            # output_object["value"] = mod_data[0]
-                        # elif data_type == 2:
-                        # mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
-                        # str_data = [str(item) for item in mod_data]
-                        # output_object["value"] = str_data
+                        elif data_type == 2:
+                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
                         elif data_type == 3:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
                             con_mod_data = self.convertion_for_float(mod_data)
@@ -167,17 +161,18 @@ class MQTTClient:
                                 float_strings = [str(value) if value is not None else '0.0' for value in con_mod_data]
                                 result_string = ', '.join(float_strings)
                                 self.logger.info(f'Float values: {result_string}')
+                                output_object["value"] = result_string
                             else:
+                                output_object["value"] = "0.0"
                                 self.logger.info('Float values: 0.0')
-
                         # else:
                         #     self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
-            # web_alarm_payload = json.dumps(output_data)
-            # self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
-            # with open('dummy_data/payload.json', 'w') as output_file:
-            #     json.dump(output_data, output_file, indent=2)
-            # self.logger.info(f'To send Payload : {json.dumps(output_data)}')
+            web_alarm_payload = json.dumps(output_data)
+            self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
+            with open('dummy_data/payload.json', 'w') as output_file:
+                json.dump(output_data, output_file, indent=2)
+            self.logger.info(f'To send Payload : {json.dumps(output_data)}')
 
     def periodic_update(self):
         while not self.should_exit:
