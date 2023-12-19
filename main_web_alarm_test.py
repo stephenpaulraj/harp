@@ -14,6 +14,23 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 from log_helper import log_config
 
 
+def floatC(inp):
+    f = []
+    s = str(inp)
+    result = str(s)
+    f.append(result)
+    return f
+
+
+def intC(inp):
+    t = []
+    s = str(inp)
+    a_string = "".join(s)
+    result = str(a_string)
+    t.append(result)
+    return t
+
+
 class MQTTClient:
     def __init__(self, logger):
         self.should_exit = False
@@ -54,12 +71,20 @@ class MQTTClient:
                 self.logger.error(f"Error checking eth1 interface: {e}")
                 return False
 
+    def is_tun0_interface_present(self):
+        with IPRoute() as ipr:
+            try:
+                tun0_interface = ipr.link_lookup(ifname='tun0')
+                return bool(tun0_interface)
+            except Exception as e:
+                self.logger.error(f"Error checking tun0 interface: {e}")
+                return False
+
     def process_web_alarms(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         data = json.loads(m_decode)
-        self.logger.info(f'The HW : {data.get("HardwareID")}')
 
-        if int(data.get("HardwareID")) == 35:
+        if int(data.get("HardwareID")) == self.get_hw_id():
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
 
@@ -70,27 +95,82 @@ class MQTTClient:
         else:
             return None
 
+    def get_serial_id(self):
+        try:
+            with open('/home/pi/serialid.txt', 'r') as f:
+                SerialNumber = f.read()
+            return SerialNumber
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/serialid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading serial id: {e}")
+            return None
+
+    def get_hw_id(self):
+        try:
+            with open('/home/pi/hardwareid.txt', 'r') as f:
+                HwId = f.read()
+            return int(HwId)
+        except FileNotFoundError:
+            self.logger.error("File not found: /home/pi/hardwareid.txt")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading hardware id: {e}")
+            return None
+
+    def find_hardware_id(self, json_data, serial_number):
+        try:
+            if isinstance(json_data, bytes):
+                json_data = json_data.decode('utf-8')
+
+            data = json.loads(json_data)
+
+            for obj_name, obj_data in data.items():
+                if int(obj_data["SerialNumber"]) == int(serial_number):
+                    self.logger.info(f"SerialNo Match: True")
+                    return obj_data["HardwareID"]
+
+        except json.JSONDecodeError as e:
+            self.logger.info(f"Error decoding JSON: {e}")
+            return None
+
     def web_alarm_get_data(self):
         if self.is_eth1_interface_present():
             c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=False, debug=False)
             with open('dummy_data/sample.json', 'r') as file:
                 json_data = file.read()
             data = json.loads(json_data)
+            output_data = {"HardWareID": self.get_hw_id()}
             for key, value in data.items():
+                output_object = {
+                    "Description": "111",
+                    "ParameterName": value["ParameterName"],
+                    "AlarmID": value["AlarmID"]
+                }
                 if isinstance(value, dict) and "DataType" in value:
                     data_type = int(value["DataType"])
                     if data_type == 1:
                         mod_data = c.read_holding_registers(int(value['Address']), 1)
-                        self.logger.info(f"DataType 1 is {mod_data}")
+                        int_data = intC(mod_data)
+                        output_object["value"] = int_data
+                        self.logger.info(f"DataType 1 is {int_data}")
                     elif data_type == 2:
                         mod_data = c.read_holding_registers(int(value['Address']), 1)
+                        str_data = [str(item) for item in mod_data]
+                        output_object["value"] = str_data
                         self.logger.info(f"DataType 2 is {mod_data}")
                     elif data_type == 3:
                         mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
                         con_mod_data = self.convertion_for_float(mod_data)
-                        self.logger.info(f"DataType 3 is {con_mod_data} ")
+                        float_data = floatC(con_mod_data)
+                        output_object["value"] = float_data
+                        self.logger.info(f"DataType 3 is {float_data} ")
                     else:
                         self.logger.info(f"{key} has an unknown DataType: {data_type}")
+                output_data[key] = output_object
+            with open('dummy_data/payload.json', 'w') as output_file:
+                json.dump(output_data, output_file, indent=2)
 
     def periodic_update(self):
         while not self.should_exit:
@@ -98,7 +178,7 @@ class MQTTClient:
             if self.connection_flag:
                 payload = json.dumps(
                     {
-                        "HardWareID": 36,
+                        "HardWareID": self.get_hw_id(),
                         "object": {
                             "ParameterName": "Connection",
                             "Value": "1111",
@@ -109,6 +189,64 @@ class MQTTClient:
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                 self.web_alarm_get_data()
                 self.logger.info(f"Connection Payload send: {payload}")
+
+    def get_remote(self, json_data):
+        try:
+            data = json.loads(json_data)
+            if "object" in data:
+                object_data = data["object"]
+                if "Access" in object_data and "HardWareID" in data:
+                    access_value = object_data["Access"]
+                    hardware_id = data["HardWareID"]
+                    hw_id = str(hardware_id)
+                    return access_value, hw_id
+
+        except json.JSONDecodeError as e:
+            self.logger.info(f"Error decoding JSON: {e}")
+
+    def process_remote_access(self, msg):
+        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        access_value, hardware_id = self.get_remote(m_decode)
+        if hardware_id == self.get_hw_id():
+            self.logger.info(f"The HW is: {self.get_hw_id()}")
+            if access_value is not None:
+                self.logger.info(f"The Access value is: {access_value}")
+                if access_value == "0":
+                    os.popen('/home/pi/rmoteStop.sh')
+                    self.logger.info(f"Remote Access (VPN) Stopped")
+                if access_value == "1":
+                    os.popen('/home/pi/rmoteStart.sh')
+                    self.logger.info(f"Remote Access (VPN) Started")
+                    # find Tun0 available (send Payload) tun0 i up
+                    if self.is_tun0_interface_present():
+                        self.logger.info("tun0 interface is present. Sending payload.")
+                        payload = json.dumps(
+                            {
+                                "HardWareID": int(self.get_hw_id()),
+                                "object": {
+                                    "ParameterName": "Remote",
+                                    "Value": "1111",
+                                    "AlarmID": "8888"
+                                }
+                            }
+                        )
+                        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    else:
+                        self.logger.info("tun0 interface is not present.")
+        else:
+            self.logger.info("Access value not found in the JSON.")
+
+    def process_hardware_list(self, msg):
+        serial_id = self.get_serial_id()
+        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        hw_id = self.find_hardware_id(m_decode, str(serial_id))
+
+        self.logger.info(f"Serial Id : {serial_id}")
+        self.logger.info(f"Hardware Id : {hw_id}")
+        f = open('/home/pi/hardwareid.txt', 'w')
+        # f = open('dummy_data/hardwareid.txt', 'w')
+        f.write(str(hw_id))
+        f.close()
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -126,8 +264,12 @@ class MQTTClient:
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         self.logger.info(f"Received message on topic {topic}")
-        if topic == "web-Alarms":
+        if topic == "hardwarelist":
+            self.process_hardware_list(msg)
+        elif topic == "web-Alarms":
             self.process_web_alarms(msg)
+        elif topic == "remote-access":
+            self.process_remote_access(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")

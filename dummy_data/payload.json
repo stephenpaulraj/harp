@@ -1,0 +1,21 @@
+{
+  "HardWareID": 35,
+  "object0": {
+    "Description": "111",
+    "ParameterName": "Life_Word",
+    "value": "14",
+    "AlarmID": "196"
+  },
+  "object1": {
+    "Description": "111",
+    "ParameterName": "Writedata_Status",
+    "value": "28678",
+    "AlarmID": "311"
+  },
+  "object2": {
+    "Description": "111",
+    "ParameterName": "E_Stop_01",
+    "value": "0",
+    "AlarmID": "4"
+  }
+}
