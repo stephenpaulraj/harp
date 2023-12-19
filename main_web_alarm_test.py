@@ -15,11 +15,9 @@ from log_helper import log_config
 
 
 def floatC(inp):
-    f = []
     s = str(inp)
     result = str(s)
-    f.append(result)
-    return f
+    return result
 
 
 def intC(inp):
@@ -151,7 +149,7 @@ class MQTTClient:
                         data_type = int(value["DataType"])
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
-                            i_mod_data = intC(mod_data)
+                            i_mod_data = intC(mod_data[0])
                             if i_mod_data is None:
                                 self.logger.info(f'Int value : 0')
                             else:
@@ -168,7 +166,7 @@ class MQTTClient:
                         elif data_type == 3:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
                             con_mod_data = self.convertion_for_float(mod_data)
-                            i_mod_float_data = floatC(con_mod_data)
+                            i_mod_float_data = floatC(con_mod_data[0])
                             if i_mod_float_data is None:
                                 self.logger.info(f'Float value : 0.0')
                             else:
