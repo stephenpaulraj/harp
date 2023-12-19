@@ -152,10 +152,10 @@ class MQTTClient:
                     if isinstance(value, dict) and "DataType" in value:
                         data_type = int(value["DataType"])
                         if data_type == 3:
-                            mod_data = c.read_holding_registers(int(value['Address']), 1 * 2)
+                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1 * 2)
                             con_mod_data = self.convertion_for_float(mod_data)
                             # mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            self.logger.info(f'Float value : {con_mod_data[0]}')
+                            self.logger.info(f'Float value : {con_mod_data}')
                             # output_object["value"] = mod_data[0]
                         # elif data_type == 2:
                         #     mod_data = c.read_holding_registers(int(value['Address']), 1)
