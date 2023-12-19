@@ -153,17 +153,17 @@ class MQTTClient:
                         data_type = int(value["DataType"])
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            int_data = intC(mod_data)
-                            output_object["value"] = int_data
-                        elif data_type == 2:
-                            mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            str_data = [str(item) for item in mod_data]
-                            output_object["value"] = str_data
-                        elif data_type == 3:
-                            mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
-                            con_mod_data = self.convertion_for_float(mod_data)
-                            float_data = floatC(con_mod_data)
-                            output_object["value"] = float_data
+                            self.logger.info(f'Int value : {mod_data}')
+                            output_object["value"] = mod_data
+                        # elif data_type == 2:
+                        #     mod_data = c.read_holding_registers(int(value['Address']), 1)
+                        #     str_data = [str(item) for item in mod_data]
+                        #     output_object["value"] = str_data
+                        # elif data_type == 3:
+                        #     mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
+                        #     con_mod_data = self.convertion_for_float(mod_data)
+                        #     float_data = floatC(con_mod_data)
+                        #     output_object["value"] = float_data
                         else:
                             self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
