@@ -149,11 +149,8 @@ class MQTTClient:
                         data_type = int(value["DataType"])
                         if data_type == 1:
                             mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
-                            i_mod_data = str(mod_data[0])
-                            if i_mod_data is None:
-                                self.logger.info(f'Int value : 0')
-                            else:
-                                self.logger.info(f'Int value : {i_mod_data}')
+                            i_mod_data = str(mod_data[0]) if mod_data is not None else '0.0'
+                            self.logger.info(f'Int value : {i_mod_data}')
 
                             # # con_mod_data = self.convertion_for_float(mod_data)
                             # # mod_data = c.read_holding_registers(int(value['Address']), 1)
