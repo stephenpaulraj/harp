@@ -155,23 +155,22 @@ class MQTTClient:
                             mod_data = c.read_holding_registers(int(value['Address']), 1)
                             int_data = intC(mod_data)
                             output_object["value"] = int_data
-                            self.logger.info(f"DataType 1 is {int_data}")
                         elif data_type == 2:
                             mod_data = c.read_holding_registers(int(value['Address']), 1)
                             str_data = [str(item) for item in mod_data]
                             output_object["value"] = str_data
-                            self.logger.info(f"DataType 2 is {mod_data}")
                         elif data_type == 3:
                             mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
                             con_mod_data = self.convertion_for_float(mod_data)
                             float_data = floatC(con_mod_data)
                             output_object["value"] = float_data
-                            self.logger.info(f"DataType 3 is {float_data} ")
                         else:
                             self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
             web_alarm_payload = json.dumps(output_data)
             self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
+            with open('dummy_data/payload.json', 'w') as output_file:
+                json.dump(output_data, output_file, indent=2)
             self.logger.info(f'To send Payload : {json.dumps(output_data)}')
 
     def periodic_update(self):
