@@ -165,8 +165,8 @@ class MQTTClient:
                             else:
                                 output_object["value"] = "0.0"
                                 self.logger.info('Float values: 0.0')
-                        # else:
-                        #     self.logger.info(f"{key} has an unknown DataType: {data_type}")
+                        else:
+                            self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
             web_alarm_payload = json.dumps(output_data)
             self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
