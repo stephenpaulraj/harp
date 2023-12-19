@@ -152,8 +152,10 @@ class MQTTClient:
                     if isinstance(value, dict) and "DataType" in value:
                         data_type = int(value["DataType"])
                         if data_type == 1:
-                            self.logger.info(f'Address value : {int(value["Address"]) - 1}')
-                            # mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
+                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
+                            i_mod_data = intC(mod_data)
+                            self.logger.info(f'RAW Int value : {mod_data[0]}')
+                            self.logger.info(f'Int value : {i_mod_data[0]}')
                             # # con_mod_data = self.convertion_for_float(mod_data)
                             # # mod_data = c.read_holding_registers(int(value['Address']), 1)
                             # self.logger.info(f'Int value : {mod_data[0]}')
@@ -168,8 +170,8 @@ class MQTTClient:
                             # con_mod_data = self.convertion_for_float(mod_data)
                             # self.logger.info(f'Int value : {con_mod_data[0]}')
                             # output_object["value"] = con_mod_data[0]
-                        else:
-                            self.logger.info(f"{key} has an unknown DataType: {data_type}")
+                        # else:
+                        #     self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
             # web_alarm_payload = json.dumps(output_data)
             # self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
