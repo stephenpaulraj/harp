@@ -143,31 +143,32 @@ class MQTTClient:
             data = json.loads(json_data)
             output_data = {"HardWareID": self.get_hw_id()}
             for key, value in data.items():
-                output_object = {
-                    "Description": "111",
-                    "ParameterName": value["ParameterName"],
-                    "AlarmID": value["AlarmID"]
-                }
-                if isinstance(value, dict) and "DataType" in value:
-                    data_type = int(value["DataType"])
-                    if data_type == 1:
-                        mod_data = c.read_holding_registers(int(value['Address']), 1)
-                        int_data = intC(mod_data)
-                        output_object["value"] = int_data
-                        self.logger.info(f"DataType 1 is {int_data}")
-                    elif data_type == 2:
-                        mod_data = c.read_holding_registers(int(value['Address']), 1)
-                        str_data = [str(item) for item in mod_data]
-                        output_object["value"] = str_data
-                        self.logger.info(f"DataType 2 is {mod_data}")
-                    elif data_type == 3:
-                        mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
-                        con_mod_data = self.convertion_for_float(mod_data)
-                        float_data = floatC(con_mod_data)
-                        output_object["value"] = float_data
-                        self.logger.info(f"DataType 3 is {float_data} ")
-                    else:
-                        self.logger.info(f"{key} has an unknown DataType: {data_type}")
+                self.logger.info(f'Pramaeter : {value["ParameterName"]}')
+                # output_object = {
+                #     "Description": "111",
+                #     "ParameterName": value["ParameterName"],
+                #     "AlarmID": value["AlarmID"]
+                # }
+                # if isinstance(value, dict) and "DataType" in value:
+                #     data_type = int(value["DataType"])
+                #     if data_type == 1:
+                #         mod_data = c.read_holding_registers(int(value['Address']), 1)
+                #         int_data = intC(mod_data)
+                #         output_object["value"] = int_data
+                #         self.logger.info(f"DataType 1 is {int_data}")
+                #     elif data_type == 2:
+                #         mod_data = c.read_holding_registers(int(value['Address']), 1)
+                #         str_data = [str(item) for item in mod_data]
+                #         output_object["value"] = str_data
+                #         self.logger.info(f"DataType 2 is {mod_data}")
+                #     elif data_type == 3:
+                #         mod_data = c.read_holding_registers(int(value['Address']), (1 * 2))
+                #         con_mod_data = self.convertion_for_float(mod_data)
+                #         float_data = floatC(con_mod_data)
+                #         output_object["value"] = float_data
+                #         self.logger.info(f"DataType 3 is {float_data} ")
+                #     else:
+                #         self.logger.info(f"{key} has an unknown DataType: {data_type}")
                 output_data[key] = output_object
             with open('dummy_data/payload.json', 'w') as output_file:
                 json.dump(output_data, output_file, indent=2)
