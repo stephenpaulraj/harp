@@ -135,7 +135,7 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
-    def web_alarm_get_data(self):
+    def web_alarm_get_data(self, Number=1):
         if self.is_eth1_interface_present():
             c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=True, debug=False)
             with open('dummy_data/sample.json', 'r') as file:
@@ -151,21 +151,23 @@ class MQTTClient:
                     }
                     if isinstance(value, dict) and "DataType" in value:
                         data_type = int(value["DataType"])
-                        if data_type == 3:
-                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1 * 2)
-                            con_mod_data = self.convertion_for_float(mod_data)
-                            # mod_data = c.read_holding_registers(int(value['Address']), 1)
-                            self.logger.info(f'Float value : {con_mod_data}')
+                        if data_type == 1:
+                            self.logger.info(f'Address value : {int(value["Address"]) - 1}')
+                            # mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
+                            # # con_mod_data = self.convertion_for_float(mod_data)
+                            # # mod_data = c.read_holding_registers(int(value['Address']), 1)
+                            # self.logger.info(f'Int value : {mod_data[0]}')
                             # output_object["value"] = mod_data[0]
                         # elif data_type == 2:
-                        #     mod_data = c.read_holding_registers(int(value['Address']), 1)
-                        #     # str_data = [str(item) for item in mod_data]
-                        #     # output_object["value"] = str_data
+                            # mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
+                            # str_data = [str(item) for item in mod_data]
+                            # output_object["value"] = str_data
                         # elif data_type == 3:
-                        #     mod_data = c.read_holding_registers(int(value['Address']), 1 * 2)
-                        #     con_mod_data = self.convertion_for_float(mod_data)
-                        #     self.logger.info(f'Int value : {con_mod_data[0]}')
-                        #     # output_object["value"] = con_mod_data[0]
+                            # self.logger.info(f'Address value : {int(value["Address"]) - 1}')
+                            # mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
+                            # con_mod_data = self.convertion_for_float(mod_data)
+                            # self.logger.info(f'Int value : {con_mod_data[0]}')
+                            # output_object["value"] = con_mod_data[0]
                         else:
                             self.logger.info(f"{key} has an unknown DataType: {data_type}")
                     output_data[key] = output_object
