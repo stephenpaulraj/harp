@@ -143,7 +143,8 @@ class MQTTClient:
             data = json.loads(json_data)
             output_data = {"HardWareID": self.get_hw_id()}
             for key, value in data.items():
-                self.logger.info(f'Pramaeter : {value["ParameterName"]}')
+                if key != "HardwareID":
+                    self.logger.info(f'Parameter: {value["ParameterName"]}')
                 # output_object = {
                 #     "Description": "111",
                 #     "ParameterName": value["ParameterName"],
