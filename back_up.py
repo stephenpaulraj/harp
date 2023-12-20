@@ -3,9 +3,6 @@ import os
 import threading
 import time
 
-from pyModbusTCP.client import ModbusClient
-
-from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
 import ssl
@@ -13,16 +10,10 @@ import uuid
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 
 from log_helper import log_config
-from plc.Rough import test_function_ss
 
 
 class MQTTClient:
     def __init__(self, logger):
-        self.last_checked_time = 0
-        self.cached_result = None
-        self.cached_data = None
-        self.cache_refresh_interval = 180
-        self.modbus_client = None
         self.should_exit = False
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
@@ -48,18 +39,9 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
-
-    def is_eth1_interface_present(self):
-        with IPRoute() as ipr:
-            try:
-                eth1_interface = ipr.link_lookup(ifname='eth1')
-                return bool(eth1_interface)
-            except Exception as e:
-                self.logger.error(f"Error checking eth1 interface: {e}")
-                return False
 
     def is_tun0_interface_present(self):
         with IPRoute() as ipr:
@@ -69,14 +51,6 @@ class MQTTClient:
             except Exception as e:
                 self.logger.error(f"Error checking tun0 interface: {e}")
                 return False
-
-    def process_web_alarms(self, msg):
-        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        data = json.loads(m_decode)
-
-        if int(data.get("HardwareID")) == self.get_hw_id():
-            with open("dummy_data/sample.json", "w") as outfile:
-                json.dump(data, outfile)
 
     def get_serial_id(self):
         try:
@@ -94,7 +68,7 @@ class MQTTClient:
         try:
             with open('/home/pi/hardwareid.txt', 'r') as f:
                 HwId = f.read()
-            return int(HwId)
+            return HwId
         except FileNotFoundError:
             self.logger.error("File not found: /home/pi/hardwareid.txt")
             return None
@@ -118,6 +92,20 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
+    def get_remote(self, json_data):
+        try:
+            data = json.loads(json_data)
+            if "object" in data:
+                object_data = data["object"]
+                if "Access" in object_data and "HardWareID" in data:
+                    access_value = object_data["Access"]
+                    hardware_id = data["HardWareID"]
+                    hw_id = str(hardware_id)
+                    return access_value, hw_id
+
+        except json.JSONDecodeError as e:
+            self.logger.info(f"Error decoding JSON: {e}")
+
     def periodic_update(self):
         while not self.should_exit:
             time.sleep(10)
@@ -133,24 +121,31 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.logger.info(f"Connection Payload send!")
-                if self.is_eth1_interface_present():
-                    self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
-                    self.logger.info(f"PLC Payload send!")
+                self.logger.info(f"Message send: {payload}")
 
-    def get_remote(self, json_data):
-        try:
-            data = json.loads(json_data)
-            if "object" in data:
-                object_data = data["object"]
-                if "Access" in object_data and "HardWareID" in data:
-                    access_value = object_data["Access"]
-                    hardware_id = data["HardWareID"]
-                    hw_id = str(hardware_id)
-                    return access_value, hw_id
+    def process_hardware_list(self, msg):
+        serial_id = self.get_serial_id()
+        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        hw_id = self.find_hardware_id(m_decode, str(serial_id))
 
-        except json.JSONDecodeError as e:
-            self.logger.info(f"Error decoding JSON: {e}")
+        self.logger.info(f"Serial Id : {serial_id}")
+        self.logger.info(f"Hardware Id : {hw_id}")
+        f = open('/home/pi/hardwareid.txt', 'w')
+        # f = open('dummy_data/hardwareid.txt', 'w')
+        f.write(str(hw_id))
+        f.close()
+
+    def process_web_hardware_status(self, msg):
+        pass
+
+    def process_web_alarms(self, msg):
+        pass
+        # m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        # data = json.loads(m_decode)
+        # self.logger.info(f'The HW : {data.get("HardwareID")}')
+
+        # with open("/home/pi/sample.json", "w") as outfile:
+        #     json.dump(data, outfile)
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -184,17 +179,8 @@ class MQTTClient:
         else:
             self.logger.info("Access value not found in the JSON.")
 
-    def process_hardware_list(self, msg):
-        serial_id = self.get_serial_id()
-        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        hw_id = self.find_hardware_id(m_decode, str(serial_id))
-
-        self.logger.info(f"Serial Id : {serial_id}")
-        self.logger.info(f"Hardware Id : {hw_id}")
-        f = open('/home/pi/hardwareid.txt', 'w')
-        # f = open('dummy_data/hardwareid.txt', 'w')
-        f.write(str(hw_id))
-        f.close()
+    def process_network(self, msg):
+        pass
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -214,14 +200,17 @@ class MQTTClient:
         self.logger.info(f"Received message on topic {topic}")
         if topic == "hardwarelist":
             self.process_hardware_list(msg)
+        elif topic == "web-hardwarestatus":
+            self.process_web_hardware_status(msg)
         elif topic == "web-Alarms":
             self.process_web_alarms(msg)
         elif topic == "remote-access":
             self.process_remote_access(msg)
+        elif topic == "network":
+            self.process_network(msg)
 
     def on_publish(self, client, userdata, mid):
-        # self.logger.info("Message Published")
-        pass
+        self.logger.info("Message Published")
 
 
 if __name__ == '__main__':

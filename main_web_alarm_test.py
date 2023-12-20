@@ -120,7 +120,7 @@ class MQTTClient:
 
     def periodic_update(self):
         while not self.should_exit:
-            time.sleep(30)
+            time.sleep(10)
             if self.connection_flag:
                 payload = json.dumps(
                     {
