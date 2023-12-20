@@ -21,6 +21,10 @@ from log_helper import log_config
 
 class MQTTClient:
     def __init__(self, logger):
+        self.last_checked_time = 0
+        self.cached_result = None
+        self.cached_data = None
+        self.cache_refresh_interval = 180
         self.modbus_client = None
         self.should_exit = False
         self.logger = logger
@@ -138,78 +142,52 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
-    async def web_alarm_get_data(self, Number=1):
+    def check_json_structure_and_return_data(self, file_path):
+        current_time = time.time()
+        if current_time - self.last_checked_time < self.cache_refresh_interval and self.cached_result is not None:
+            return self.cached_result, self.cached_data
+
+        if not os.path.exists(file_path):
+            self.logger.error(f"File not found: {file_path}")
+            return False, None
+
+        try:
+            # Read JSON data from the file
+            with open(file_path, 'r') as file:
+                json_data = file.read()
+
+            data = json.loads(json_data)
+
+            if "HardwareID" in data and isinstance(data["HardwareID"], int):
+                for i in range(2):
+                    object_key = f"object{i}"
+                    if object_key not in data or not isinstance(data[object_key], dict):
+                        self.logger.error(f"Missing or invalid structure for {object_key}")
+                        result, data = False, None
+                        break
+                else:
+                    result = True
+            else:
+                self.logger.error("Missing or invalid structure for HardwareID")
+                result, data = False, None
+
+            self.last_checked_time = current_time
+            self.cached_result, self.cached_data = result, data
+            return result, data
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error decoding JSON in {file_path}: {e}")
+            return False, None
+
+    async def web_alarm_get_data(self):
         if self.is_eth1_interface_present():
-            await self.establish_modbus_connection()
-            try:
-                with open('dummy_data/sample.json', 'r') as file:
-                    json_data = file.read()
-
+            file_path = 'dummy_data/sample.json'
+            result, json_data = self.check_json_structure_and_return_data(file_path)
+            self.logger.info(f"Check data {result}")
+            if result:
                 data = json.loads(json_data)
-                output_data = {"HardWareID": self.get_hw_id()}
-
-                tasks = []
-                for key, value in data.items():
-                    if key != "HardwareID":
-                        output_object = {
-                            "Description": "111",
-                            "ParameterName": value["ParameterName"],
-                            "AlarmID": value["AlarmID"]
-                        }
-
-                        if isinstance(value, dict) and "DataType" in value:
-                            data_type = int(value["DataType"])
-
-                            if data_type in (1, 2, 3):
-                                try:
-                                    # Read holding registers
-                                    address = int(value['Address']) - 1
-                                    count = 2 if data_type == 3 else 1
-                                    mod_data = await self.modbus_client.read_holding_registers(address, count)
-
-                                    if data_type == 1:
-                                        i_mod_data = str(mod_data[0]) if mod_data and len(mod_data) > 0 else '0.0'
-                                        output_object["value"] = i_mod_data
-                                        self.logger.info(f'Int value : {i_mod_data}')
-                                    elif data_type == 3:
-                                        con_mod_data = await self.convertion_for_float(mod_data)
-                                        if con_mod_data is not None:
-                                            float_strings = [str(value) if value is not None else '0.0' for value in
-                                                             con_mod_data]
-                                            result_string = ', '.join(float_strings)
-                                            self.logger.info(f'Float values: {result_string}')
-                                            output_object["value"] = result_string
-                                        else:
-                                            output_object["value"] = "0.0"
-                                            self.logger.info('Float values: 0.0')
-                                except (IllegalFunction, IllegalDataAddress, IllegalDataValue, SlaveDeviceFailure,
-                                        AcknowledgeError, DeviceBusy, NegativeAcknowledgeError, MemoryParityError,
-                                        GatewayPathUnavailable, GatewayDeviceFailedToRespond) as e:
-                                    self.logger.error(f"Modbus communication error: {e}")
-                            else:
-                                self.logger.info(f"{key} has an unknown DataType: {data_type}")
-
-                            output_data[key] = output_object
-
-                            tasks.append(self.write_to_file(output_data))
-
-                await asyncio.gather(*tasks)
-
-                web_alarm_payload = json.dumps(output_data)
-                await self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
-                self.logger.info(f'To send Payload : {json.dumps(output_data)}')
-
-            finally:
-                await self.close_modbus_connection()
-
-    async def write_to_file(self, output_data):
-        with open('dummy_data/payload.json', 'w') as output_file:
-            await json.dump(output_data, output_file, indent=2)
 
     def periodic_update(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         while not self.should_exit:
             time.sleep(10)
             if self.connection_flag:
@@ -224,15 +202,8 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-
-                try:
-                    loop.run_until_complete(self.web_alarm_get_data())
-                except Exception as e:
-                    self.logger.error(f"Error in web_alarm_get_data: {e}")
-
+                self.web_alarm_get_data()
                 self.logger.info(f"Connection Payload send: {payload}")
-
-        loop.close()
 
     def get_remote(self, json_data):
         try:
