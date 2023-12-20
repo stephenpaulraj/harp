@@ -55,20 +55,6 @@ class MQTTClient:
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
-    async def establish_modbus_connection(self):
-        self.modbus_client = ModbusTCPClient('192.168.3.1', 502)
-        try:
-            await self.modbus_client.connect()
-        except Exception as e:
-            self.logger.error(f"Error establishing Modbus connection: {e}")
-            # Optionally, raise an exception to propagate the error
-            raise
-
-    async def close_modbus_connection(self):
-        if self.modbus_client is not None:
-            await self.modbus_client.stop()
-            self.modbus_client = None
-
     def is_eth1_interface_present(self):
         with IPRoute() as ipr:
             try:
@@ -95,7 +81,7 @@ class MQTTClient:
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
 
-    async def convertion_for_float(self, mod_data):
+    def convertion_for_float(self, mod_data):
         if mod_data:
             float_values = [decode_ieee(f) for f in word_list_to_long(mod_data)]
             return float_values
@@ -152,7 +138,6 @@ class MQTTClient:
             return False, None
 
         try:
-            # Read JSON data from the file
             with open(file_path, 'r') as file:
                 json_data = file.read()
 
@@ -179,7 +164,7 @@ class MQTTClient:
             self.logger.error(f"Error decoding JSON in {file_path}: {e}")
             return False, None
 
-    async def web_alarm_get_data(self):
+    def web_alarm_get_data(self):
         if self.is_eth1_interface_present():
             file_path = 'dummy_data/sample.json'
             result, json_data = self.check_json_structure_and_return_data(file_path)
