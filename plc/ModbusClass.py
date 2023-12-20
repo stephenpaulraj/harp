@@ -34,6 +34,7 @@ class ModbusClientClass:
                 self.logger.warning(f"Modbus read error for address {address}: {e}")
         return result
 
+
     def process_data(self):
         self.logger.info("Processing Modbus data...")
 
