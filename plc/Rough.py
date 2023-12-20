@@ -309,91 +309,84 @@ def test_function_ss():
     Dict = {"HardWareID": defaultid}
     parse_msg()
 
-    while True:
-        l = bool_l
-        Float = []
+    l = bool_l
+    Float = []
 
-        for i in range(float_l):
-            Float.append(read_float(c, float2[i], 1))
-        Float = floatC(Float)
+    for i in range(float_l):
+        Float.append(read_float(c, float2[i], 1))
+    Float = floatC(Float)
 
-        value1 = 0
-        value2 = 0
-        value3 = 0
-        value4 = 0
-        reg5 = []
-        Integer = []
+    value1 = 0
+    value2 = 0
+    value3 = 0
+    value4 = 0
+    reg5 = []
+    Integer = []
 
-        if len(int2) != 0:
-            for i in range(integer_l):
-                Integer.append(c.read_holding_registers(int2[i], 1))
-            Integer = intC(Integer)
+    if len(int2) != 0:
+        for i in range(integer_l):
+            Integer.append(c.read_holding_registers(int2[i], 1))
+        Integer = intC(Integer)
 
-        if len(boolean2) != 0:
-            for i in range(len(boolean2)):
-                reg5.append(c.read_holding_registers(boolean2[i], 1))
-            reg6 = []
-            for i in range(len(reg5)):
-                s = [str(integer) for integer in reg5[i]]
-                a_string = "".join(s)
+    if len(boolean2) != 0:
+        for i in range(len(boolean2)):
+            reg5.append(c.read_holding_registers(boolean2[i], 1))
+        reg6 = []
+        for i in range(len(reg5)):
+            s = [str(integer) for integer in reg5[i]]
+            a_string = "".join(s)
 
-                res = int(a_string)
+            res = int(a_string)
 
-                reg6.append(res)
-            integer = []
-            for i in range(len(reg6)):
-                integer.append(reg6[i])
-            binary = []
-            int1 = 484
-            bi1 = bin(int1)
+            reg6.append(res)
+        integer = []
+        for i in range(len(reg6)):
+            integer.append(reg6[i])
+        binary = []
+        int1 = 484
+        bi1 = bin(int1)
 
-            for i in range(len(integer)):
-                regs_2_bin = str(format(integer[i], '016b'))
-                binary.append(regs_2_bin)
+        for i in range(len(integer)):
+            regs_2_bin = str(format(integer[i], '016b'))
+            binary.append(regs_2_bin)
 
-            regs_1_bin = str(format(int1, '016b'))
+        regs_1_bin = str(format(int1, '016b'))
 
-            res_final = []
-            for i in range(len(binary)):
-                res10 = []
-                for x in range(16):
-                    res10.append(binary[i][x])
-                res_final.append(res10)
-            for i in range(len(res_final)):
-                res_final[i] = arrange(res_final[i])
-
-            for i in range(len(res_final)):
-                res_final[i] = pop(res_final[i], R1[i])
-
-            res_finalF = []
-            for i in range(len(res_final)):
-                res_finalF = res_finalF + (res_final[i])
-            final = Integer + res_finalF + Float
-
-            n = 1
-            for i in range(len(name)):
-                Dict["object" + str(i)] = {}
-
-            for i in range(len(name)):
-                Dict["object" + str(i)]['Description'] = "111"
-                Dict["object" + str(i)]['ParameterName'] = name[i]
-                Dict["object" + str(i)]['value'] = final[i]
-                Dict["object" + str(i)]['AlarmID'] = alarmID[i]
-
-            res = []
+        res_final = []
+        for i in range(len(binary)):
+            res10 = []
             for x in range(16):
-                res.append(regs_1_bin[x])
-            tags_bool = 0
-            for i in range(len(R1)):
-                tags_bool = tags_bool + R1[i]
-            final = [0 for i in range(len(name))]
-        payload = json.dumps(Dict)
+                res10.append(binary[i][x])
+            res_final.append(res10)
+        for i in range(len(res_final)):
+            res_final[i] = arrange(res_final[i])
 
-        c.close()
-        time.sleep(10)
-        return payload
+        for i in range(len(res_final)):
+            res_final[i] = pop(res_final[i], R1[i])
 
+        res_finalF = []
+        for i in range(len(res_final)):
+            res_finalF = res_finalF + (res_final[i])
+        final = Integer + res_finalF + Float
 
-if __name__ == "__main__":
-    while True:
-        print(test_function_ss())
+        n = 1
+        for i in range(len(name)):
+            Dict["object" + str(i)] = {}
+
+        for i in range(len(name)):
+            Dict["object" + str(i)]['Description'] = "111"
+            Dict["object" + str(i)]['ParameterName'] = name[i]
+            Dict["object" + str(i)]['value'] = final[i]
+            Dict["object" + str(i)]['AlarmID'] = alarmID[i]
+
+        res = []
+        for x in range(16):
+            res.append(regs_1_bin[x])
+        tags_bool = 0
+        for i in range(len(R1)):
+            tags_bool = tags_bool + R1[i]
+        final = [0 for i in range(len(name))]
+    payload = json.dumps(Dict)
+
+    c.close()
+    return payload
