@@ -1,3 +1,5 @@
+import concurrent
+
 from pyModbusTCP.client import ModbusClient
 from concurrent.futures import ThreadPoolExecutor
 
