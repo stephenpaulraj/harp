@@ -17,7 +17,7 @@ import uuid
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 
 from log_helper import log_config
-from plc.ModbusClass import ModbusClientClass
+from plc.Rough import test_function_ss
 
 
 class MQTTClient:
@@ -165,16 +165,6 @@ class MQTTClient:
             self.logger.error(f"Error decoding JSON in {file_path}: {e}")
             return False, None
 
-    def web_alarm_get_data(self):
-        if self.is_eth1_interface_present():
-            file_path = 'dummy_data/sample.json'
-            result, json_data = self.check_json_structure_and_return_data(file_path)
-            self.logger.info(f"Check data {result}")
-            if result:
-                data = json_data
-                modbus_client = ModbusClientClass(logger, data)
-                modbus_client.process_data()
-
     def periodic_update(self):
         while not self.should_exit:
             time.sleep(10)
@@ -190,7 +180,7 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.web_alarm_get_data()
+                self.client.publish("iot-data3", payload=test_function_ss(), qos=1, retain=True)
                 self.logger.info(f"Connection Payload send: {payload}")
 
     def get_remote(self, json_data):
