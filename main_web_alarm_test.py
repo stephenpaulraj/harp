@@ -48,7 +48,7 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
@@ -162,6 +162,7 @@ class MQTTClient:
             return False, None
 
     def periodic_update(self):
+        c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
         while not self.should_exit:
             time.sleep(30)
             if self.connection_flag:
@@ -176,7 +177,7 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                self.client.publish("iot-data3", payload=test_function_ss(c), qos=1, retain=True)
                 self.logger.info(f"Connection Payload send: {payload}")
 
     def get_remote(self, json_data):
