@@ -48,7 +48,7 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-
+        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
@@ -77,13 +77,6 @@ class MQTTClient:
         if int(data.get("HardwareID")) == self.get_hw_id():
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
-
-    def convertion_for_float(self, mod_data):
-        if mod_data:
-            float_values = [decode_ieee(f) for f in word_list_to_long(mod_data)]
-            return float_values
-        else:
-            return None
 
     def get_serial_id(self):
         try:
@@ -125,44 +118,7 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
-    def check_json_structure_and_return_data(self, file_path):
-        current_time = time.time()
-        if current_time - self.last_checked_time < self.cache_refresh_interval and self.cached_result is not None:
-            return self.cached_result, self.cached_data
-
-        if not os.path.exists(file_path):
-            self.logger.error(f"File not found: {file_path}")
-            return False, None
-
-        try:
-            with open(file_path, 'r') as file:
-                json_data = file.read()
-
-            data = json.loads(json_data)
-
-            if "HardwareID" in data and isinstance(data["HardwareID"], int):
-                for i in range(2):
-                    object_key = f"object{i}"
-                    if object_key not in data or not isinstance(data[object_key], dict):
-                        self.logger.error(f"Missing or invalid structure for {object_key}")
-                        result, data = False, None
-                        break
-                else:
-                    result = True
-            else:
-                self.logger.error("Missing or invalid structure for HardwareID")
-                result, data = False, None
-
-            self.last_checked_time = current_time
-            self.cached_result, self.cached_data = result, data
-            return result, data
-
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Error decoding JSON in {file_path}: {e}")
-            return False, None
-
     def periodic_update(self):
-        c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
         while not self.should_exit:
             time.sleep(30)
             if self.connection_flag:
@@ -177,8 +133,10 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.client.publish("iot-data3", payload=test_function_ss(c), qos=1, retain=True)
-                self.logger.info(f"Connection Payload send: {payload}")
+                self.logger.info(f"Connection Payload send!")
+                if self.is_eth1_interface_present():
+                    self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                    self.logger.info(f"PLC Payload send!")
 
     def get_remote(self, json_data):
         try:
