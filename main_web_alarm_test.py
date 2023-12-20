@@ -199,8 +199,11 @@ class MQTTClient:
             await json.dump(output_data, output_file, indent=2)
 
     def periodic_update(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         while not self.should_exit:
-            time.sleep(30)
+            time.sleep(10)
             if self.connection_flag:
                 payload = json.dumps(
                     {
@@ -213,8 +216,13 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.web_alarm_get_data()
+
+                # Run the asynchronous function within the event loop
+                loop.run_until_complete(self.web_alarm_get_data())
+
                 self.logger.info(f"Connection Payload send: {payload}")
+
+        loop.close()
 
     def get_remote(self, json_data):
         try:
