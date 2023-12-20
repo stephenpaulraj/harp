@@ -3,7 +3,12 @@ import os
 import threading
 import time
 
-from pyModbusTCP.client import ModbusClient
+import asyncio
+from aiomodbus.tcp import ModbusTCPClient
+from aiomodbus.exceptions import RequestException, IllegalFunction, IllegalDataAddress, IllegalDataValue, \
+    SlaveDeviceFailure, AcknowledgeError, DeviceBusy, NegativeAcknowledgeError, MemoryParityError, \
+    GatewayPathUnavailable, GatewayDeviceFailedToRespond
+
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
@@ -14,21 +19,9 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 from log_helper import log_config
 
 
-def floatC(inp):
-    s = str(inp)
-    result = str(s)
-    return result
-
-
-def intC(inp):
-    s = str(inp)
-    a_string = "".join(s)
-    result = str(a_string)
-    return result
-
-
 class MQTTClient:
     def __init__(self, logger):
+        self.modbus_client = ModbusTCPClient('192.168.3.1', 502)
         self.should_exit = False
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
@@ -58,6 +51,12 @@ class MQTTClient:
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
+    async def establish_modbus_connection(self):
+        await self.modbus_client.connect()
+
+    async def close_modbus_connection(self):
+        await self.modbus_client.stop()
+
     def is_eth1_interface_present(self):
         with IPRoute() as ipr:
             try:
@@ -84,7 +83,7 @@ class MQTTClient:
             with open("dummy_data/sample.json", "w") as outfile:
                 json.dump(data, outfile)
 
-    def convertion_for_float(self, mod_data):
+    async def convertion_for_float(self, mod_data):
         if mod_data:
             float_values = [decode_ieee(f) for f in word_list_to_long(mod_data)]
             return float_values
@@ -131,48 +130,73 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
-    def web_alarm_get_data(self, Number=1):
+    async def web_alarm_get_data(self, Number=1):
         if self.is_eth1_interface_present():
-            c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, auto_close=True, debug=False)
-            with open('dummy_data/sample.json', 'r') as file:
-                json_data = file.read()
-            data = json.loads(json_data)
-            output_data = {"HardWareID": self.get_hw_id()}
-            for key, value in data.items():
-                if key != "HardwareID":
-                    output_object = {
-                        "Description": "111",
-                        "ParameterName": value["ParameterName"],
-                        "AlarmID": value["AlarmID"]
-                    }
-                    if isinstance(value, dict) and "DataType" in value:
-                        data_type = int(value["DataType"])
-                        if data_type == 1:
-                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
-                            i_mod_data = str(mod_data[0]) if mod_data is not None else '0.0'
-                            output_object["value"] = i_mod_data
-                            self.logger.info(f'Int value : {i_mod_data}')
-                        elif data_type == 2:
-                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 1)
-                        elif data_type == 3:
-                            mod_data = c.read_holding_registers(int(value['Address']) - 1, 2)
-                            con_mod_data = self.convertion_for_float(mod_data)
-                            if con_mod_data is not None:
-                                float_strings = [str(value) if value is not None else '0.0' for value in con_mod_data]
-                                result_string = ', '.join(float_strings)
-                                self.logger.info(f'Float values: {result_string}')
-                                output_object["value"] = result_string
+            await self.establish_modbus_connection()
+            try:
+                with open('dummy_data/sample.json', 'r') as file:
+                    json_data = file.read()
+
+                data = json.loads(json_data)
+                output_data = {"HardWareID": self.get_hw_id()}
+
+                tasks = []
+                for key, value in data.items():
+                    if key != "HardwareID":
+                        output_object = {
+                            "Description": "111",
+                            "ParameterName": value["ParameterName"],
+                            "AlarmID": value["AlarmID"]
+                        }
+
+                        if isinstance(value, dict) and "DataType" in value:
+                            data_type = int(value["DataType"])
+
+                            if data_type in (1, 2, 3):
+                                try:
+                                    # Read holding registers
+                                    address = int(value['Address']) - 1
+                                    count = 2 if data_type == 3 else 1
+                                    mod_data = await self.modbus_client.read_holding_registers(address, count)
+
+                                    if data_type == 1:
+                                        i_mod_data = str(mod_data[0]) if mod_data and len(mod_data) > 0 else '0.0'
+                                        output_object["value"] = i_mod_data
+                                        self.logger.info(f'Int value : {i_mod_data}')
+                                    elif data_type == 3:
+                                        con_mod_data = await self.convertion_for_float(mod_data)
+                                        if con_mod_data is not None:
+                                            float_strings = [str(value) if value is not None else '0.0' for value in
+                                                             con_mod_data]
+                                            result_string = ', '.join(float_strings)
+                                            self.logger.info(f'Float values: {result_string}')
+                                            output_object["value"] = result_string
+                                        else:
+                                            output_object["value"] = "0.0"
+                                            self.logger.info('Float values: 0.0')
+                                except (IllegalFunction, IllegalDataAddress, IllegalDataValue, SlaveDeviceFailure,
+                                        AcknowledgeError, DeviceBusy, NegativeAcknowledgeError, MemoryParityError,
+                                        GatewayPathUnavailable, GatewayDeviceFailedToRespond) as e:
+                                    self.logger.error(f"Modbus communication error: {e}")
                             else:
-                                output_object["value"] = "0.0"
-                                self.logger.info('Float values: 0.0')
-                        else:
-                            self.logger.info(f"{key} has an unknown DataType: {data_type}")
-                    output_data[key] = output_object
-            web_alarm_payload = json.dumps(output_data)
-            self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
-            with open('dummy_data/payload.json', 'w') as output_file:
-                json.dump(output_data, output_file, indent=2)
-            self.logger.info(f'To send Payload : {json.dumps(output_data)}')
+                                self.logger.info(f"{key} has an unknown DataType: {data_type}")
+
+                            output_data[key] = output_object
+
+                            tasks.append(self.write_to_file(output_data))
+
+                await asyncio.gather(*tasks)
+
+                web_alarm_payload = json.dumps(output_data)
+                await self.client.publish("iot-data3", payload=web_alarm_payload, qos=1, retain=True)
+                self.logger.info(f'To send Payload : {json.dumps(output_data)}')
+
+            finally:
+                await self.close_modbus_connection()
+
+    async def write_to_file(self, output_data):
+        with open('dummy_data/payload.json', 'w') as output_file:
+            await json.dump(output_data, output_file, indent=2)
 
     def periodic_update(self):
         while not self.should_exit:
