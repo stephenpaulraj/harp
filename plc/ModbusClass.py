@@ -17,6 +17,7 @@ class ModbusClientClass:
     def read_modbus_data(self, addresses):
         client = ModbusClient(host='192.168.3.1', port=502, auto_open=True)
         result = []
+
         try:
             with ThreadPoolExecutor() as executor:
                 futures = {executor.submit(self.read_single_address, client, address): address for address in addresses}
@@ -25,16 +26,28 @@ class ModbusClientClass:
                     try:
                         data_type = int(self.data[f"object{addresses.index(address)}"]["DataType"])
                         values = future.result()
-                        if values:
-                            result.append((address, values[0] if data_type in (1, 2) else values))
+
+                        if values is not None:
+                            self.logger.info(f"Received Modbus response for address {address}: {values}")
+
+                            if data_type in (1, 2):
+                                result.append((address, values[0]))
+                            elif data_type == 3:
+                                result.append((address, values))
+                            else:
+                                self.logger.warning(f"Unsupported DataType for address {address}")
                         else:
                             self.logger.warning(f"Empty Modbus response for address {address}")
+
                     except Exception as e:
-                        self.logger.warning(f"Modbus read error for address {address}: {e}")
+                        self.logger.warning(f"Error processing Modbus response for address {address}: {e}")
+
         except Exception as e:
             self.logger.error(f"Error during Modbus communication: {e}")
+
         finally:
             client.close()
+
         return result
 
     def read_single_address(self, client, address):
