@@ -3,11 +3,7 @@ import os
 import threading
 import time
 
-import asyncio
-from aiomodbus.tcp import ModbusTCPClient
-from aiomodbus.exceptions import RequestException, IllegalFunction, IllegalDataAddress, IllegalDataValue, \
-    SlaveDeviceFailure, AcknowledgeError, DeviceBusy, NegativeAcknowledgeError, MemoryParityError, \
-    GatewayPathUnavailable, GatewayDeviceFailedToRespond
+from pyModbusTCP.client import ModbusClient
 
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
@@ -52,7 +48,7 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-
+        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
@@ -180,7 +176,7 @@ class MQTTClient:
                     }
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.client.publish("iot-data3", payload=test_function_ss(), qos=1, retain=True)
+                self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
                 self.logger.info(f"Connection Payload send: {payload}")
 
     def get_remote(self, json_data):

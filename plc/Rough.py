@@ -275,7 +275,7 @@ def parse_msg():
         print('File does not exist')
 
 
-def test_function_ss():
+def test_function_ss(c):
     global R
     global float2
     global boolean2
@@ -293,7 +293,6 @@ def test_function_ss():
     f.close()
     defaultid = int(data)
 
-    c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
     write = 0
     boolean2 = []
     int2 = []
@@ -387,6 +386,4 @@ def test_function_ss():
             tags_bool = tags_bool + R1[i]
         final = [0 for i in range(len(name))]
     payload = json.dumps(Dict)
-
-    c.close()
     return payload
