@@ -170,7 +170,7 @@ class MQTTClient:
             result, json_data = self.check_json_structure_and_return_data(file_path)
             self.logger.info(f"Check data {result}")
             if result:
-                data = json.loads(json_data)
+                data = json_data
 
     def periodic_update(self):
         while not self.should_exit:
