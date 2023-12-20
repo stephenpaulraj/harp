@@ -17,6 +17,7 @@ import uuid
 from connectivity.con_status import check_internet_connection, get_active_network_interface
 
 from log_helper import log_config
+from plc.ModbusClass import ModbusClientClass
 
 
 class MQTTClient:
@@ -171,6 +172,8 @@ class MQTTClient:
             self.logger.info(f"Check data {result}")
             if result:
                 data = json_data
+                modbus_client = ModbusClientClass(logger, data)
+                modbus_client.process_data()
 
     def periodic_update(self):
         while not self.should_exit:
