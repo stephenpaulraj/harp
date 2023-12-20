@@ -1,4 +1,5 @@
 from pyModbusTCP.client import ModbusClient
+from concurrent.futures import ThreadPoolExecutor
 
 class ModbusClientClass:
     def __init__(self, logger, data):
@@ -13,27 +14,35 @@ class ModbusClientClass:
         return addresses
 
     def read_modbus_data(self, addresses):
-        client = ModbusClient(host='192.168.3.1', port=502, auto_open=True)
-        result = []
-        for address in addresses:
+        with ModbusClient(host='192.168.3.1', port=502, auto_open=True) as client:
+            result = []
             try:
-                data_type = int(self.data[f"object{addresses.index(address)}"]["DataType"])
-                if data_type in (1, 2):
-                    values = client.read_holding_registers(address - 1, 1)
-                elif data_type == 3:
-                    values = client.read_holding_registers(address - 1, 2)
-                else:
-                    self.logger.warning(f"Unsupported DataType for address {address}")
-                    continue
-
-                if values:
-                    result.append((address, values[0] if data_type in (1, 2) else values))
-                else:
-                    self.logger.warning(f"Empty Modbus response for address {address}")
+                with ThreadPoolExecutor() as executor:
+                    futures = {executor.submit(self.read_single_address, client, address): address for address in addresses}
+                    for future in concurrent.futures.as_completed(futures):
+                        address = futures[future]
+                        try:
+                            data_type = int(self.data[f"object{addresses.index(address)}"]["DataType"])
+                            values = future.result()
+                            if values:
+                                result.append((address, values[0] if data_type in (1, 2) else values))
+                            else:
+                                self.logger.warning(f"Empty Modbus response for address {address}")
+                        except Exception as e:
+                            self.logger.warning(f"Modbus read error for address {address}: {e}")
             except Exception as e:
-                self.logger.warning(f"Modbus read error for address {address}: {e}")
-        return result
+                self.logger.error(f"Error during Modbus communication: {e}")
+            return result
 
+    def read_single_address(self, client, address):
+        data_type = int(self.data[f"object{self.extract_addresses().index(address)}"]["DataType"])
+        if data_type in (1, 2):
+            return client.read_holding_registers(address - 1, 1)
+        elif data_type == 3:
+            return client.read_holding_registers(address - 1, 2)
+        else:
+            self.logger.warning(f"Unsupported DataType for address {address}")
+            return None
 
     def process_data(self):
         self.logger.info("Processing Modbus data...")
