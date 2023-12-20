@@ -21,7 +21,7 @@ from log_helper import log_config
 
 class MQTTClient:
     def __init__(self, logger):
-        self.modbus_client = ModbusTCPClient('192.168.3.1', 502)
+        self.modbus_client = None
         self.should_exit = False
         self.logger = logger
         self.client = mqtt.Client(str(uuid.uuid1()), reconnect_on_failure=True)
@@ -52,10 +52,18 @@ class MQTTClient:
         self.periodic_update_thread.start()
 
     async def establish_modbus_connection(self):
-        await self.modbus_client.connect()
+        self.modbus_client = ModbusTCPClient('192.168.3.1', 502)
+        try:
+            await self.modbus_client.connect()
+        except Exception as e:
+            self.logger.error(f"Error establishing Modbus connection: {e}")
+            # Optionally, raise an exception to propagate the error
+            raise
 
     async def close_modbus_connection(self):
-        await self.modbus_client.stop()
+        if self.modbus_client is not None:
+            await self.modbus_client.stop()
+            self.modbus_client = None
 
     def is_eth1_interface_present(self):
         with IPRoute() as ipr:
@@ -217,8 +225,10 @@ class MQTTClient:
                 )
                 self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
 
-                # Run the asynchronous function within the event loop
-                loop.run_until_complete(self.web_alarm_get_data())
+                try:
+                    loop.run_until_complete(self.web_alarm_get_data())
+                except Exception as e:
+                    self.logger.error(f"Error in web_alarm_get_data: {e}")
 
                 self.logger.info(f"Connection Payload send: {payload}")
 
