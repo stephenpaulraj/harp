@@ -24,18 +24,11 @@ class ModbusClientClass:
                 for future in as_completed(futures):
                     address = futures[future]
                     try:
-                        data_type = int(self.data[f"object{addresses.index(address)}"]["DataType"])
                         values = future.result()
 
                         if values is not None:
                             self.logger.info(f"Received Modbus response for address {address}: {values}")
-
-                            if data_type in (1, 2):
-                                result.append((address, values[0]))
-                            elif data_type == 3:
-                                result.append((address, values))
-                            else:
-                                self.logger.warning(f"Unsupported DataType for address {address}")
+                            result.append((address, values))
                         else:
                             self.logger.warning(f"Empty Modbus response for address {address}")
 
