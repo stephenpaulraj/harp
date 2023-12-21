@@ -3,13 +3,16 @@ import subprocess
 import json
 from pyModbusTCP.client import ModbusClient
 
+import main
+
+
 class DeviceInformation:
     def __init__(self):
         self.device_info = {
             "device_info": {
                 "License_info": {
-                    "serial_id": "YourSerialID",  # Replace with actual serial ID
-                    "hardware_id": "YourHardwareID"  # Replace with actual hardware ID
+                    "serial_id": self.get_serial_id(),
+                    "hardware_id": self.get_hw_id()
                 },
                 "Hardware_info": {
                     "CPU": {},
@@ -26,6 +29,26 @@ class DeviceInformation:
                 }
             }
         }
+
+    def get_serial_id(self):
+        try:
+            with open('/home/pi/serialid.txt', 'r') as f:
+                SerialNumber = f.read()
+            return SerialNumber
+        except FileNotFoundError:
+            return None
+        except Exception as e:
+            return None
+
+    def get_hw_id(self):
+        try:
+            with open('/home/pi/hardwareid.txt', 'r') as f:
+                HwId = f.read()
+            return int(HwId)
+        except FileNotFoundError:
+            return None
+        except Exception as e:
+            return None
 
     def get_service_status(self):
         try:
