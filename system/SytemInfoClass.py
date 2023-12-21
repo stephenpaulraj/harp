@@ -1,68 +1,69 @@
-import json
-import psutil
-import platform
 import subprocess
+import json
 
-
-class SystemInfoCollector:
+class DeviceInformation:
     def __init__(self):
-        self.system_info = {}
+        self.device_info = {
+            "device_info": {
+                "License_info": {},
+                "Hardware_info": {
+                    "CPU": {}
+                },
 
-    def get_os_info(self):
-        self.system_info['OS'] = platform.system()
-
-    def get_linux_kernel_version(self):
-        if self.system_info['OS'] == 'Linux':
-            uname_info = platform.uname()
-            self.system_info['Linux Kernel Version'] = uname_info.release
-
-    def get_storage_info(self):
-        disk_usage = psutil.disk_usage('/')
-        self.system_info['Storage'] = {
-            'Used': disk_usage.used,
-            'Free': disk_usage.free
+            }
         }
 
-    def get_var_log_size(self):
-        var_log_size = subprocess.check_output(['du', '-sh', '/var/log']).decode('utf-8').split()[0]
-        self.system_info['/var/log Size'] = var_log_size
-
-    def get_memory_info(self):
-        virtual_memory = psutil.virtual_memory()
-        self.system_info['Memory'] = {
-            'Used': virtual_memory.used,
-            'Free': virtual_memory.available
-        }
-
-    def check_process_status(self, process_name):
+    def get_cpu_info(self):
         try:
-            result = subprocess.check_output(['pgrep', '-f', process_name]).decode('utf-8')
-            process_id = result.strip()
-            self.system_info[process_name] = {
-                'Running': True,
-                'Process ID': process_id
+            # Retrieve information from /proc/cpuinfo
+            cpu_info = subprocess.check_output("cat /proc/cpuinfo", shell=True, text=True)
+            hardware = self.extract_cpu_info(cpu_info, "Hardware")
+            revision = self.extract_cpu_info(cpu_info, "Revision")
+            serial = self.extract_cpu_info(cpu_info, "Serial")
+            model = self.extract_cpu_info(cpu_info, "Model")
+
+            # Retrieve information from lscpu
+            lscpu_info = subprocess.check_output("lscpu", shell=True, text=True)
+            architecture = self.extract_lscpu_info(lscpu_info, "Architecture")
+            cpus = self.extract_lscpu_info(lscpu_info, "CPU(s)")
+            model_name = self.extract_lscpu_info(lscpu_info, "Model name")
+
+            # Populate the device_info dictionary
+            self.device_info["Hardware_id"]["CPU"] = {
+                "Hardware": hardware,
+                "Revision": revision,
+                "Serial": serial,
+                "Model": model,
+                "Architecture": architecture,
+                "CPUs": cpus,
+                "ModelName": model_name
             }
+
         except subprocess.CalledProcessError:
-            self.system_info[process_name] = {
-                'Running': False,
-                'Process ID': None
-            }
+            print("Error retrieving CPU information.")
 
-    def get_network_info(self):
-        network_info = psutil.net_if_stats()
-        self.system_info['Network'] = {
-            'Total Interfaces': len(network_info),
-            'Ethernet Interface': [interface for interface, stats in network_info.items() if stats.isup and stats.isup],
-        }
+    def extract_cpu_info(self, cpu_info, key):
+        lines = cpu_info.splitlines()
+        for line in lines:
+            if key in line:
+                return line.split(":")[1].strip()
+        return "Not available"
 
-    def collect_info(self):
-        self.get_os_info()
-        self.get_linux_kernel_version()
-        self.get_storage_info()
-        self.get_var_log_size()
-        self.get_memory_info()
-        self.check_process_status('/harp/main.py')
-        self.get_network_info()
+    def extract_lscpu_info(self, lscpu_info, key):
+        lines = lscpu_info.splitlines()
+        for line in lines:
+            if key in line:
+                return line.split(":")[1].strip()
+        return "Not available"
+
+    def get_device_info(self):
+        self.get_cpu_info()
 
     def to_json(self):
-        return json.dumps(self.system_info, indent=2)
+        return json.dumps(self.device_info, indent=4)
+
+# Example usage
+if __name__ == "__main__":
+    device_info_obj = DeviceInformation()
+    device_info_obj.get_device_info()
+    print(device_info_obj.to_json())

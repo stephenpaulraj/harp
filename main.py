@@ -4,8 +4,6 @@ import threading
 import time
 
 from pyModbusTCP.client import ModbusClient
-
-from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
 import ssl
@@ -14,6 +12,7 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 
 from log_helper import log_config
 from plc.Rough import test_function_ss
+from ping3 import ping, verbose_ping
 
 
 class MQTTClient:
@@ -56,10 +55,81 @@ class MQTTClient:
         with IPRoute() as ipr:
             try:
                 eth1_interface = ipr.link_lookup(ifname='eth1')
-                return bool(eth1_interface)
+                if not eth1_interface:
+                    self.logger.error("eth1 interface not found.")
+                    return False
+
+                eth1_ip = self.get_interface_ip('eth1')
+                if eth1_ip != '192.168.3.11':
+                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+                    return False
+
+                if not self.ping_and_check_modbus('192.168.3.1', 502):
+                    self.logger.error("Failed to ping '192.168.3.1' or Modbus port (502) is not open.")
+                    return False
+
+                if not self.check_sample_json():
+                    self.logger.error("'Parameter not found or does not have at least two objects.")
+                    return False
+                self.logger.info("All checklist passed.")
+                return True
             except Exception as e:
                 self.logger.error(f"Error checking eth1 interface: {e}")
                 return False
+
+    def get_interface_ip(self, interface_name):
+        try:
+            import netifaces
+            addresses = netifaces.ifaddresses(interface_name)
+            if netifaces.AF_INET in addresses:
+                return addresses[netifaces.AF_INET][0]['addr']
+            else:
+                return None
+        except Exception as e:
+            self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
+            return None
+
+    def ping_and_check_modbus(self, host, port):
+        try:
+            if ping(host) is None:
+                self.logger.error(f"Failed to ping {host}.")
+                return False
+
+            with ModbusClient(host=host, port=port, auto_open=True, debug=False) as client:
+                if client.is_open():
+                    self.logger.info(f"Ping to {host} successful and Modbus port ({port}) is open.")
+                    return True
+                else:
+                    self.logger.error(f"Failed to open Modbus port ({port}) on {host}.")
+                    return False
+        except Exception as e:
+            self.logger.error(f"Error checking Modbus port on {host}:{port}: {e}")
+            return False
+
+    def check_sample_json(self):
+        json_file_path = 'dummy_data/sample.json'
+        try:
+            if os.path.exists(json_file_path):
+                with open(json_file_path, 'r') as json_file:
+                    data = json.load(json_file)
+
+                    if "HardwareID" not in data:
+                        self.logger.error(f"'{json_file_path}' does not have the 'HardwareID' object.")
+                        return False
+
+                    object_count = sum(1 for key in data.keys() if key.startswith("object"))
+                    if object_count < 2:
+                        self.logger.error(f"'{json_file_path}' does not have at least two objects.")
+                        return False
+
+                    self.logger.info(f"'{json_file_path}' found and has at least two objects.")
+                    return True
+            else:
+                self.logger.error(f"'{json_file_path}' not found.")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error checking '{json_file_path}': {e}")
+            return False
 
     def is_tun0_interface_present(self):
         with IPRoute() as ipr:
@@ -132,11 +202,14 @@ class MQTTClient:
                         }
                     }
                 )
-                self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.logger.info(f"Connection Payload send!")
                 if self.is_eth1_interface_present():
+                    self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    self.logger.info(f"Connection Payload send!")
                     self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
                     self.logger.info(f"PLC Payload send!")
+                else:
+                    self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    self.logger.info(f"Connection Payload send!")
 
     def get_remote(self, json_data):
         try:
@@ -165,7 +238,6 @@ class MQTTClient:
                 if access_value == "1":
                     os.popen('/home/pi/rmoteStart.sh')
                     self.logger.info(f"Remote Access (VPN) Started")
-                    # find Tun0 available (send Payload) tun0 i up
                     if self.is_tun0_interface_present():
                         self.logger.info("tun0 interface is present. Sending payload.")
                         payload = json.dumps(
@@ -192,7 +264,6 @@ class MQTTClient:
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
-        # f = open('dummy_data/hardwareid.txt', 'w')
         f.write(str(hw_id))
         f.close()
 
