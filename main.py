@@ -201,7 +201,7 @@ class MQTTClient:
                 device_info_obj = DeviceInformation()
                 device_info_obj.get_device_info()
                 dev_payload = device_info_obj.to_json()
-                self.logger.info(f"{dev_payload}")
+
                 if self.is_eth1_interface_present():
                     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     self.logger.info(f"Connection Payload send!")
@@ -238,11 +238,13 @@ class MQTTClient:
         hardware_id = int(data.get("HardWareID", 0))
         access = int(data.get("object", {}).get("Access", 0))
         if hardware_id == self.get_hw_id():
-            self.logger.info(f"The HW is: {self.get_hw_id()}")
-            if access == "0":
+            self.logger.info(f"The From portal HW is: {access}")
+            self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
+            self.logger.info(f"Session: {access}")
+            if access == 0:
                 os.popen('/home/pi/rmoteStop.sh')
                 self.logger.info(f"Remote Access (VPN) Stopped")
-            elif access == "1":
+            elif access == 1:
                 os.popen('/home/pi/rmoteStart.sh')
                 self.logger.info(f"Remote Access (VPN) Started")
                 if self.is_tun0_interface_present():
