@@ -201,7 +201,7 @@ class MQTTClient:
                 device_info_obj = DeviceInformation()
                 device_info_obj.get_device_info()
                 dev_payload = device_info_obj.to_json()
-
+                self.logger.info(f"{dev_payload}")
                 if self.is_eth1_interface_present():
                     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     self.logger.info(f"Connection Payload send!")
