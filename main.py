@@ -64,9 +64,9 @@ class MQTTClient:
                     self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
                     return False
 
-                if not self.ping_and_check_modbus('192.168.3.1', 502):
-                    self.logger.error("Failed to ping '192.168.3.1' or Modbus port (502) is not open.")
-                    return False
+                # if not self.ping_and_check_modbus('192.168.3.1', 502):
+                #     self.logger.error("Failed to ping '192.168.3.1' or Modbus port (502) is not open.")
+                #     return False
 
                 if not self.check_sample_json():
                     self.logger.error("'Parameter not found or does not have at least two objects.")
