@@ -64,14 +64,10 @@ class MQTTClient:
                     self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
                     return False
 
-                # if not self.ping_and_check_modbus('192.168.3.1', 502):
-                #     self.logger.error("Failed to ping '192.168.3.1' or Modbus port (502) is not open.")
-                #     return False
-
                 if not self.check_sample_json():
-                    self.logger.error("'Parameter not found or does not have at least two objects.")
+                    self.logger.error("'Problem with Web-Alarm Json File.")
                     return False
-                self.logger.info("All checklist passed.")
+                self.logger.info("All (Device, PLC, Network) checklist passed.")
                 return True
             except Exception as e:
                 self.logger.error(f"Error checking eth1 interface: {e}")
@@ -121,8 +117,6 @@ class MQTTClient:
                     if object_count < 2:
                         self.logger.error(f"'{json_file_path}' does not have at least two objects.")
                         return False
-
-                    self.logger.info(f"'{json_file_path}' found and has at least two objects.")
                     return True
             else:
                 self.logger.error(f"'{json_file_path}' not found.")
