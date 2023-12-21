@@ -14,6 +14,8 @@ from log_helper import log_config
 from plc.Rough import test_function_ss
 from ping3 import ping, verbose_ping
 
+from system.SytemInfoClass import DeviceInformation
+
 
 class MQTTClient:
     def __init__(self, logger):
@@ -196,14 +198,25 @@ class MQTTClient:
                         }
                     }
                 )
+                device_info_obj = DeviceInformation()
+                device_info_obj.get_device_info()
+                dev_payload = device_info_obj.to_json()
+
                 if self.is_eth1_interface_present():
                     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     self.logger.info(f"Connection Payload send!")
+
                     self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
                     self.logger.info(f"PLC Payload send!")
+
+                    self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    self.logger.info(f"Device_info Payload send!")
                 else:
                     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     self.logger.info(f"Connection Payload send!")
+
+                    self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    self.logger.info(f"Device_info Payload send!")
 
     def get_remote(self, json_data):
         try:
