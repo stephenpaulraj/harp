@@ -295,8 +295,8 @@ class MQTTClient:
             self.process_web_alarms(msg)
         elif topic == "remote-access":
             self.process_remote_access(msg)
-        # elif topic == "web-hardwarestatus":
-        #     process_web_hw_status(msg)
+        elif topic == "web-hardwarestatus":
+            process_web_hw_status(msg, self.c, self.logger)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
