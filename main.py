@@ -14,6 +14,7 @@ from log_helper import log_config
 from plc.Rough import test_function_ss
 from ping3 import ping, verbose_ping
 
+from plc.Write_rough import process_web_hw_status
 from system.SytemInfoClass import DeviceInformation
 
 
@@ -294,6 +295,8 @@ class MQTTClient:
             self.process_web_alarms(msg)
         elif topic == "remote-access":
             self.process_remote_access(msg)
+        elif topic == "web-hardwarestatus":
+            process_web_hw_status(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")

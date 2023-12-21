@@ -56,20 +56,17 @@ class DeviceInformation:
 
     def get_cpu_info(self):
         try:
-            # Retrieve information from /proc/cpuinfo
             cpu_info = subprocess.check_output("cat /proc/cpuinfo", shell=True, text=True)
             hardware = self.extract_cpu_info(cpu_info, "Hardware")
             revision = self.extract_cpu_info(cpu_info, "Revision")
             serial = self.extract_cpu_info(cpu_info, "Serial")
             model = self.extract_cpu_info(cpu_info, "Model")
 
-            # Retrieve information from lscpu
             lscpu_info = subprocess.check_output("lscpu", shell=True, text=True)
             architecture = self.extract_lscpu_info(lscpu_info, "Architecture")
             cpus = self.extract_lscpu_info(lscpu_info, "CPU(s)")
             model_name = self.extract_lscpu_info(lscpu_info, "Model name")
 
-            # Populate the device_info dictionary
             self.device_info["device_info"]["Hardware_info"]["CPU"] = {
                 "Hardware": hardware,
                 "Revision": revision,
@@ -106,18 +103,15 @@ class DeviceInformation:
 
     def get_storage_info(self):
         try:
-            # Retrieve information from df
             df_info = subprocess.check_output("df -h /", shell=True, text=True)
             total_storage = self.extract_df_info(df_info, "/dev/root", "Size")
             used_storage = self.extract_df_info(df_info, "/dev/root", "Used")
             free_storage = self.extract_df_info(df_info, "/dev/root", "Avail")
 
-            # Convert values to GB or MB
             total_storage = self.convert_to_gb(total_storage)
             used_storage = self.convert_to_gb(used_storage)
             free_storage = self.convert_to_gb(free_storage)
 
-            # Populate the device_info dictionary
             self.device_info["device_info"]["Hardware_info"]["Storage"] = {
                 "TotalStorage": total_storage,
                 "UsedStorage": used_storage,
@@ -129,20 +123,12 @@ class DeviceInformation:
 
     def get_network_interface_info(self):
         try:
-            # Retrieve information from netstat
             netstat_info = subprocess.check_output("netstat -i", shell=True, text=True)
-
-            # Get a list of all network interfaces
             interfaces = [line.split()[0] for line in netstat_info.split("\n")[2:] if line]
-
-            # Populate the device_info dictionary
             self.device_info["device_info"]["Hardware_info"]["Network_interface"] = {}
 
             for interface in interfaces:
-                # Get IP address of the interface
                 ip_address = self.get_ip_address(interface)
-
-                # Add interface information to the dictionary
                 self.device_info["device_info"]["Hardware_info"]["Network_interface"][interface] = {
                     "IPAddress": ip_address
                 }
