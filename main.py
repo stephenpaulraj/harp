@@ -234,32 +234,32 @@ class MQTTClient:
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        access_value, hardware_id = self.get_remote(m_decode)
+        data = json.loads(m_decode)
+        hardware_id = int(data.get("HardWareID", 0))
+        access = int(data.get("object", {}).get("Access", 0))
         if hardware_id == self.get_hw_id():
             self.logger.info(f"The HW is: {self.get_hw_id()}")
-            if access_value is not None:
-                self.logger.info(f"The Access value is: {access_value}")
-                if access_value == "0":
-                    os.popen('/home/pi/rmoteStop.sh')
-                    self.logger.info(f"Remote Access (VPN) Stopped")
-                if access_value == "1":
-                    os.popen('/home/pi/rmoteStart.sh')
-                    self.logger.info(f"Remote Access (VPN) Started")
-                    if self.is_tun0_interface_present():
-                        self.logger.info("tun0 interface is present. Sending payload.")
-                        payload = json.dumps(
-                            {
-                                "HardWareID": int(self.get_hw_id()),
-                                "object": {
-                                    "ParameterName": "Remote",
-                                    "Value": "1111",
-                                    "AlarmID": "8888"
-                                }
+            if access == "0":
+                os.popen('/home/pi/rmoteStop.sh')
+                self.logger.info(f"Remote Access (VPN) Stopped")
+            elif access == "1":
+                os.popen('/home/pi/rmoteStart.sh')
+                self.logger.info(f"Remote Access (VPN) Started")
+                if self.is_tun0_interface_present():
+                    self.logger.info("tun0 interface is present. Sending payload.")
+                    payload = json.dumps(
+                        {
+                            "HardWareID": int(self.get_hw_id()),
+                            "object": {
+                                "ParameterName": "Remote",
+                                "Value": "1111",
+                                "AlarmID": "8888"
                             }
-                        )
-                        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                    else:
-                        self.logger.info("tun0 interface is not present.")
+                        }
+                    )
+                    self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                else:
+                    self.logger.info("tun0 interface is not present.")
         else:
             self.logger.info("Access value not found in the JSON.")
 
