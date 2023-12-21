@@ -246,6 +246,7 @@ class MQTTClient:
                 self.logger.info(f"Remote Access (VPN) Stopped")
             elif access == 1:
                 os.popen('/home/pi/rmoteStart.sh')
+                time.sleep(25)
                 self.logger.info(f"Remote Access (VPN) Started")
                 if self.is_tun0_interface_present():
                     self.logger.info("tun0 interface is present. Sending payload.")
