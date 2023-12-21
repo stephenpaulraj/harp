@@ -38,3 +38,23 @@ def process_web_hw_status(msg, c, log):
             ad_1 = ad_1 - 1
             write_float(c, ad_1, [tag_1])
 
+        if data['object']['DataType'] == '2':
+            tagB = data['object']['Value']
+            ad_B = data['object']['Address']
+            ad_b = int(ad_B)
+            tagb = int(tagB)
+            ad_b = ad_b - 1
+
+            regs_l = c.read_holding_registers(ad_b, 1)
+            integer = int(regs_l[0])
+
+            binary = bin(integer)
+            regs_1_bin = str(format(integer, '016b'))
+
+            res = []
+            for x in range(16):
+                res.append(regs_1_bin[x])
+
+            r1 = res[0] + res[1] + res[2] + res[3] + res[4] + res[5] + res[6] + res[7] + res[8] + res[9] + res[10] + \
+                 res[11] + res[12] + res[13] + res[14] + res[15]
+

@@ -12,7 +12,6 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 
 from log_helper import log_config
 from plc.Rough import test_function_ss
-from ping3 import ping, verbose_ping
 
 from plc.Write_rough import process_web_hw_status
 from system.SytemInfoClass import DeviceInformation
@@ -88,23 +87,6 @@ class MQTTClient:
             self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
             return None
 
-    def ping_and_check_modbus(self, host, port):
-        try:
-            if ping(host) is None:
-                self.logger.error(f"Failed to ping {host}.")
-                return False
-
-            with ModbusClient(host=host, port=port, auto_open=True, debug=False) as client:
-                if client.is_open():
-                    self.logger.info(f"Ping to {host} successful and Modbus port ({port}) is open.")
-                    return True
-                else:
-                    self.logger.error(f"Failed to open Modbus port ({port}) on {host}.")
-                    return False
-        except Exception as e:
-            self.logger.error(f"Error checking Modbus port on {host}:{port}: {e}")
-            return False
-
     def check_sample_json(self):
         json_file_path = 'dummy_data/sample.json'
         try:
@@ -127,15 +109,6 @@ class MQTTClient:
         except Exception as e:
             self.logger.error(f"Error checking '{json_file_path}': {e}")
             return False
-
-    def is_tun0_interface_present(self):
-        with IPRoute() as ipr:
-            try:
-                tun0_interface = ipr.link_lookup(ifname='tun0')
-                return bool(tun0_interface)
-            except Exception as e:
-                self.logger.error(f"Error checking tun0 interface: {e}")
-                return False
 
     def process_web_alarms(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -218,20 +191,6 @@ class MQTTClient:
 
                     self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
                     self.logger.info(f"Device_info Payload send!")
-
-    def get_remote(self, json_data):
-        try:
-            data = json.loads(json_data)
-            if "object" in data:
-                object_data = data["object"]
-                if "Access" in object_data and "HardWareID" in data:
-                    access_value = object_data["Access"]
-                    hardware_id = data["HardWareID"]
-                    hw_id = str(hardware_id)
-                    return access_value, hw_id
-
-        except json.JSONDecodeError as e:
-            self.logger.info(f"Error decoding JSON: {e}")
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
