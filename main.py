@@ -245,24 +245,19 @@ class MQTTClient:
                 os.popen('/home/pi/rmoteStop.sh')
                 self.logger.info(f"Remote Access (VPN) Stopped")
             elif access == 1:
-                os.popen('/home/pi/rmoteStart.sh')
-                time.sleep(25)
-                self.logger.info(f"Remote Access (VPN) Started")
-                if self.is_tun0_interface_present():
-                    self.logger.info("tun0 interface is present. Sending payload.")
-                    payload = json.dumps(
-                        {
-                            "HardWareID": int(self.get_hw_id()),
-                            "object": {
-                                "ParameterName": "Remote",
-                                "Value": "1111",
-                                "AlarmID": "8888"
-                            }
+                payload = json.dumps(
+                    {
+                        "HardWareID": int(self.get_hw_id()),
+                        "object": {
+                            "ParameterName": "Remote",
+                            "Value": "1111",
+                            "AlarmID": "8888"
                         }
-                    )
-                    self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                else:
-                    self.logger.info("tun0 interface is not present.")
+                    }
+                )
+                self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                os.popen('/home/pi/rmoteStart.sh')
+                self.logger.info(f"Remote Access (VPN) Started")
         else:
             self.logger.info("Access value not found in the JSON.")
 
