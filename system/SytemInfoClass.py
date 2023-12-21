@@ -3,9 +3,6 @@ import subprocess
 import json
 from pyModbusTCP.client import ModbusClient
 
-import main
-
-
 class DeviceInformation:
     def __init__(self):
         self.device_info = {
