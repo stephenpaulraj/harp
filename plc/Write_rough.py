@@ -21,6 +21,7 @@ def process_web_hw_status(msg, c, log):
     ID = data['HardwareID']
     log.info(f'From Write fn HW- {ID}')
     log.info(f'From local {get_hw_id()}')
+
     if get_hw_id() == ID:
         if data['object']['DataType'] == "1":
             tag_i = data['object']['Value']
@@ -29,4 +30,11 @@ def process_web_hw_status(msg, c, log):
             ad_I = int(ad_i)
             ad_I = ad_I - 1
             c.write_single_register(ad_I, tag_I)
+        if data['object']['DataType'] == '3':
+            tag_i = data['object']['Value']
+            ad_i = data['object']['Address']
+            tag_1 = float(tag_i)
+            ad_1 = int(ad_i)
+            ad_1 = ad_1 - 1
+            write_float(c, ad_1, [tag_1])
 
