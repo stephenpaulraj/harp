@@ -1,0 +1,55 @@
+{
+    "device_info": {
+        "License_info": {
+            "serial_id": "YourSerialID",
+            "hardware_id": "YourHardwareID"
+        },
+        "Hardware_info": {
+            "CPU": {
+                "Hardware": "BCM2835",
+                "Revision": "a03141",
+                "Serial": "10000000dc1a0560",
+                "Model": "Raspberry Pi Compute Module 4 Rev 1.1",
+                "Architecture": "aarch64",
+                "CPUs": "4",
+                "ModelName": "Cortex-A72"
+            },
+            "Memory": {
+                "MemTotal": "0.89 GB",
+                "MemFree": "0.33 GB",
+                "MemAvailable": "0.67 GB"
+            },
+            "Storage": {
+                "TotalStorage": "6.9G",
+                "UsedStorage": "2.3G",
+                "FreeStorage": "4.4G"
+            },
+            "Network_interface": {
+                "eth0": {
+                    "IPAddress": "192.168.68.105"
+                },
+                "eth1": {
+                    "IPAddress": "192.168.3.11"
+                },
+                "lo": {
+                    "IPAddress": "127.0.0.1"
+                },
+                "usb0": {
+                    "IPAddress": "192.168.225.54"
+                }
+            }
+        },
+        "Software_info": {
+            "OS": {
+                "Name": "Debian GNU/Linux 11 (bullseye)",
+                "PrettyName": "Debian GNU/Linux 11 (bullseye)"
+            },
+            "system_run_time": {
+                "uptime": "up 21 minutes"
+            },
+            "service_status": {
+                "harp_service": "active"
+            }
+        }
+    }
+}
