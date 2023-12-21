@@ -10,6 +10,7 @@ def write_float(client, address, floats_list):
     b16_l = long_list_to_word(b32_l)
     return client.write_multiple_registers(address, b16_l)
 
+
 def convert_back(bin_num):
     """
     Converts binary string to a float.
@@ -80,6 +81,18 @@ def arrange(res):
     a.append(res[-8])
 
     return a
+
+
+def get_hw_id():
+    try:
+        with open('/home/pi/hardwareid.txt', 'r') as f:
+            HwId = f.read()
+        return int(HwId)
+    except Exception as e:
+        pass
+        return None
+
+
 def process_web_hw_status(msg):
     c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
     m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -100,7 +113,7 @@ def process_web_hw_status(msg):
     # n=1
     ID = data['HardwareID']
 
-    if self.get_hw_id() == ID:
+    if get_hw_id() == ID:
         nameW.append(data['object']['ParameterName'])
         addW.append(data['object']['Address'])
         datTW.append(data['object']['DataType'])
@@ -206,7 +219,6 @@ def process_web_hw_status(msg):
                 r1_new = str(res[0]) + str(res[1]) + str(res[2]) + str(res[3]) + str(res[4]) + str(res[5]) + str(
                     res[6]) + str(res[7]) + str(res[8]) + str(res[9]) + str(res[10]) + str(res[11]) + str(
                     res[12]) + str(res[13]) + str(res[14]) + str(res[15])
-
 
                 convert_back(r1_new)
                 reg_value = convert_back(r1_new)
