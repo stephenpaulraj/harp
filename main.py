@@ -227,14 +227,19 @@ class MQTTClient:
             data = json.loads(m_decode)
             hw_id = int(data.get("hw_id"))
             operation = data.get("operation")
+            logger.info(f"{data}")
             if hw_id == self.get_hw_id():
                 if operation == "reboot":
+                    logger.info(f"{operation}")
                     pass
                 elif operation == "net_restart":
+                    logger.info(f"{operation}")
                     pass
                 elif operation == "dataplicity_restart":
+                    logger.info(f"{operation}")
                     pass
                 elif operation == "harp_restart":
+                    logger.info(f"{operation}")
                     pass
 
         except json.JSONDecodeError as e:
