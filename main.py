@@ -221,6 +221,25 @@ class MQTTClient:
         else:
             self.logger.info("Access value not found in the JSON.")
 
+    def process_operation(self, msg):
+        try:
+            m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+            data = json.loads(m_decode)
+            hw_id = int(data.get("hw_id"))
+            operation = data.get("operation")
+            if hw_id == self.get_hw_id():
+                if operation == "reboot":
+                    pass
+                elif operation == "net_restart":
+                    pass
+                elif operation == "dataplicity_restart":
+                    pass
+                elif operation == "harp_restart":
+                    pass
+
+        except json.JSONDecodeError as e:
+            logger.info(f"Error decoding JSON: {e}")
+
     def process_hardware_list(self, msg):
         serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -244,6 +263,7 @@ class MQTTClient:
         client.subscribe('network')
         client.subscribe('web-Alarms')
         client.subscribe('web-hardwarestatus')
+        client.subscribe('operation')
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -256,6 +276,8 @@ class MQTTClient:
             self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
             process_web_hw_status(msg, self.c, self.logger)
+        elif topic == "operation":
+            self.process_operation(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
