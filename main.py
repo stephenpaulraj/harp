@@ -180,8 +180,8 @@ class MQTTClient:
                     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     self.logger.info(f"Connection Payload send!")
 
-                    self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
-                    self.logger.info(f"PLC Payload send!")
+                    # self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                    # self.logger.info(f"PLC Payload send!")
 
                     self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
                     self.logger.info(f"Device_info Payload send!")

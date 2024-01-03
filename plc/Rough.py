@@ -37,9 +37,7 @@ def floatC(reg5):
         s = [str(ft) for ft in reg5[i]]
         # s=round(s,2)
         a_string = "".join(s)
-
         res = str(a_string)
-
         f.append(res)
     return (f)
 
