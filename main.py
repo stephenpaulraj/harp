@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 import threading
 import time
 
@@ -227,22 +228,30 @@ class MQTTClient:
             data = json.loads(m_decode)
             hw_id = int(data.get("hw_id"))
             operation = data.get("operation")
+
             if hw_id == self.get_hw_id():
                 if operation == 'reboot':
-                    logger.info(f"{operation}")
-                    pass
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo reboot")
                 elif operation == 'net_restart':
-                    logger.info(f"{operation}")
-                    pass
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo systemctl restart networking")
                 elif operation == 'dataplicity_restart':
-                    logger.info(f"{operation}")
-                    pass
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo supervisorctl restart tuxtunnel")
                 elif operation == 'harp_restart':
-                    logger.info(f"{operation}")
-                    pass
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo systemctl restart harp")
 
         except json.JSONDecodeError as e:
-            logger.info(f"Error decoding JSON: {e}")
+            logger.error(f"Error decoding JSON: {e}")
+
+
+    def execute_command(self, command):
+        try:
+            subprocess.run(command, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error executing command: {e}")
 
     def process_hardware_list(self, msg):
         serial_id = self.get_serial_id()
