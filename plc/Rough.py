@@ -34,12 +34,15 @@ def floatC(reg5):
     f = []
     s = ""
     for i in range(len(reg5)):
-        s = [str(ft) for ft in reg5[i]]
-        # s=round(s,2)
-        a_string = "".join(s)
-        res = str(a_string)
-        f.append(res)
-    return (f)
+        if reg5[i] is not None:
+            s = [str(ft) for ft in reg5[i]]
+            # s=round(s,2)
+            a_string = "".join(s)
+            res = str(a_string)
+            f.append(res)
+        else:
+            f.append("N/A")
+    return f
 
 
 def intC(reg91):
