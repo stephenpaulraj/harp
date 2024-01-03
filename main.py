@@ -227,18 +227,20 @@ class MQTTClient:
             data = json.loads(m_decode)
             hw_id = int(data.get("hw_id"))
             operation = data.get("operation")
-            logger.info(f"{data}")
+            logger.info(f"{operation}")
+            logger.info(f"{hw_id}")
+            logger.info(f"{self.get_hw_id()}")
             if hw_id == self.get_hw_id():
-                if operation == "reboot":
+                if operation == 'reboot':
                     logger.info(f"{operation}")
                     pass
-                elif operation == "net_restart":
+                elif operation == 'net_restart':
                     logger.info(f"{operation}")
                     pass
-                elif operation == "dataplicity_restart":
+                elif operation == 'dataplicity_restart':
                     logger.info(f"{operation}")
                     pass
-                elif operation == "harp_restart":
+                elif operation == 'harp_restart':
                     logger.info(f"{operation}")
                     pass
 
