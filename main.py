@@ -242,6 +242,9 @@ class MQTTClient:
                 elif operation == 'harp_restart':
                     logger.info(f"Executing {operation}")
                     self.execute_command("sudo systemctl restart harp")
+                elif operation == 'enable_gsm':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo mmcli -m 0 -e")
 
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
