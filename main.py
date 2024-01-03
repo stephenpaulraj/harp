@@ -227,9 +227,6 @@ class MQTTClient:
             data = json.loads(m_decode)
             hw_id = int(data.get("hw_id"))
             operation = data.get("operation")
-            logger.info(f"{operation}")
-            logger.info(f"{hw_id}")
-            logger.info(f"{self.get_hw_id()}")
             if hw_id == self.get_hw_id():
                 if operation == 'reboot':
                     logger.info(f"{operation}")
