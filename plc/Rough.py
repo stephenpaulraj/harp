@@ -45,20 +45,29 @@ def floatC(reg5):
     return f
 
 
+# def intC(reg91):
+#     global t
+#     t = []
+#     ss = ""
+#     for i in range(len(reg91)):
+#         ss = [str(ft) for ft in reg91[i]]
+#         # s=round(s,2)
+#         a_string = "".join(ss)
+#
+#         ress = str(a_string)
+#
+#         t.append(ress)
+#     return (t)
+
 def intC(reg91):
     global t
     t = []
-    ss = ""
     for i in range(len(reg91)):
-        ss = [str(ft) for ft in reg91[i]]
-        # s=round(s,2)
+        ss = [str(ft) if ft is not None else "None" for ft in reg91[i]]
         a_string = "".join(ss)
-
         ress = str(a_string)
-
         t.append(ress)
-    return (t)
-
+    return t
 
 def Cloning(li1):
     li_copy = li1[:]
