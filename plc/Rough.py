@@ -345,12 +345,16 @@ def test_function_ss(c):
             reg5.append(c.read_holding_registers(boolean2[i], 1))
         reg6 = []
         for i in range(len(reg5)):
-            s = [str(integer) for integer in reg5[i]]
-            a_string = "".join(s)
+            if reg5 is not None:
+                s = [str(integer) for integer in reg5[i]]
+                a_string = "".join(s)
 
-            res = int(a_string)
+                res = int(a_string)
 
-            reg6.append(res)
+                reg6.append(res)
+            else:
+                reg6.append("None")
+
         integer = []
         for i in range(len(reg6)):
             integer.append(reg6[i])
