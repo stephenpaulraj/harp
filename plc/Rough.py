@@ -63,10 +63,13 @@ def intC(reg91):
     global t
     t = []
     for i in range(len(reg91)):
-        ss = [str(ft) if ft is not None else "None" for ft in reg91[i]]
-        a_string = "".join(ss)
-        ress = str(a_string)
-        t.append(ress)
+        if reg91[i] is not None:
+            ss = [str(ft) for ft in reg91[i]]
+            a_string = "".join(ss)
+            ress = str(a_string)
+            t.append(ress)
+        else:
+            t.append("None")
     return t
 
 def Cloning(li1):
