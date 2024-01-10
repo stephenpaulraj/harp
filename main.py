@@ -20,6 +20,10 @@ from system.SytemInfoClass import DeviceInformation
 
 class MQTTClient:
     def __init__(self, logger):
+        self.retry_interval = 10
+        self.retry_count = 0
+        self.max_retries = 5
+
         self.last_checked_time = 0
         self.cached_result = None
         self.cached_data = None
@@ -36,6 +40,9 @@ class MQTTClient:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_publish = self.on_publish
+
+        self.client.on_disconnect = self.on_disconnect
+        self.client.on_log = self.on_log
 
         self.connection_flag = False
 
@@ -177,39 +184,36 @@ class MQTTClient:
                 device_info_obj.get_device_info()
                 dev_payload = device_info_obj.to_json()
 
-                result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"Connection Payload send! Message ID: {mid}")
-                else:
-                    self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+                if self.is_eth1_interface_present():
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                result, mid = self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
-                if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"PLC Payload send! Message ID: {mid}")
-                else:
-                    self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
+                    result, mid = self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"PLC Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
 
-                result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
                 else:
-                    self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                # if self.is_eth1_interface_present():
-                #     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                #     self.logger.info(f"Connection Payload send!")
-                #
-                #     # self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
-                #     # self.logger.info(f"PLC Payload send!")
-                #
-                #     self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                #     self.logger.info(f"Device_info Payload send!")
-                # else:
-                #     self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                #     self.logger.info(f"Connection Payload send!")
-                #
-                #     self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                #     self.logger.info(f"Device_info Payload send!")
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -267,7 +271,6 @@ class MQTTClient:
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
 
-
     def execute_command(self, command):
         try:
             subprocess.run(command, shell=True, check=True)
@@ -313,21 +316,44 @@ class MQTTClient:
         elif topic == "operation":
             self.process_operation(msg)
 
-
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
         pass
+
+    def on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            self.logger.error(f"Disconnected from MQTT broker with result code {rc}")
+            self.retry_connect()
+
+    def on_log(self, client, userdata, level, buf):
+        # Log MQTT client debug messages
+        self.logger.debug(buf)
+
+    def retry_connect(self):
+        # Retry connecting to the MQTT broker with a backoff mechanism
+        self.retry_count += 1
+        if self.retry_count <= self.max_retries:
+            self.logger.info(
+                f"Retrying connection in {self.retry_interval} seconds (Attempt {self.retry_count}/{self.max_retries})")
+            time.sleep(self.retry_interval)
+            try:
+                self.client.reconnect()
+            except Exception as e:
+                self.logger.error(f"Error during reconnection attempt: {e}")
+                self.retry_connect()  # Retry again on failure
+        else:
+            self.logger.error("Maximum retries reached. Exiting...")
+            self.should_exit = True
 
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     mqtt_instance = MQTTClient(logger)
     try:
-        while True:
+        while not mqtt_instance.should_exit:
             pass
 
     except KeyboardInterrupt:
         mqtt_instance.should_exit = True
         mqtt_instance.periodic_update_thread.join()
         logger.info("Exiting gracefully...")
-
