@@ -132,7 +132,6 @@ class MQTTClient:
 
     def periodic_update(self):
         while not self.should_exit:
-            time.sleep(10)
             if self.connection_flag:
                 payload = json.dumps(
                     {
@@ -147,7 +146,7 @@ class MQTTClient:
 
                 result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                 if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    self.logger.info(f"Connection Payload sent! Message ID: {mid}")
                 else:
                     self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
@@ -283,13 +282,21 @@ class MQTTClient:
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
     mqtt_instance = MQTTClient(logger)
+
+    update_timer = None
+
     try:
         while not mqtt_instance.should_exit:
             mqtt_instance.periodic_update()
-            time.sleep(10)
+
+            if update_timer is None or not update_timer.is_alive():
+                update_timer = threading.Timer(10, mqtt_instance.periodic_update)
+                update_timer.start()
 
     except KeyboardInterrupt:
         mqtt_instance.should_exit = True
         mqtt_instance.client.disconnect()
         mqtt_instance.client.loop_stop()
+        if update_timer:
+            update_timer.cancel()
         logger.info("Exiting gracefully...")
