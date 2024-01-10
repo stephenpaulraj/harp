@@ -326,11 +326,9 @@ class MQTTClient:
             self.retry_connect()
 
     def on_log(self, client, userdata, level, buf):
-        # Log MQTT client debug messages
         self.logger.debug(buf)
 
     def retry_connect(self):
-        # Retry connecting to the MQTT broker with a backoff mechanism
         self.retry_count += 1
         if self.retry_count <= self.max_retries:
             self.logger.info(
