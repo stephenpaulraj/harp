@@ -302,15 +302,13 @@ class MQTTClient:
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
-    internet_status = check_internet_connection()
+    mqtt_instance = MQTTClient(logger)
+    try:
+        while True:
+            pass
 
-    if internet_status:
-        mqtt_instance = MQTTClient(logger)
-        try:
-            while True:
-                pass
+    except KeyboardInterrupt:
+        mqtt_instance.should_exit = True
+        mqtt_instance.periodic_update_thread.join()
+        logger.info("Exiting gracefully...")
 
-        except KeyboardInterrupt:
-            mqtt_instance.should_exit = True
-            mqtt_instance.periodic_update_thread.join()
-            logger.info("Exiting gracefully...")
