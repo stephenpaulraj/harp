@@ -295,6 +295,7 @@ class MQTTClient:
         elif topic == "operation":
             self.process_operation(msg)
 
+
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
         pass
