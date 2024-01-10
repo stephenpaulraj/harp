@@ -290,7 +290,7 @@ if __name__ == '__main__':
             mqtt_instance.periodic_update()
 
             if update_timer is None or not update_timer.is_alive():
-                update_timer = threading.Timer(10, mqtt_instance.periodic_update)
+                update_timer = threading.Timer(1, mqtt_instance.periodic_update)
                 update_timer.start()
 
     except KeyboardInterrupt:
