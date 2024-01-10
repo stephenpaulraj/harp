@@ -1,21 +1,28 @@
 import json
 import os
 import subprocess
-import threading
 import time
 
 from pyModbusTCP.client import ModbusClient
-from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
 import ssl
 import uuid
-from connectivity.con_status import check_internet_connection, get_active_network_interface
 
 from log_helper import log_config
-from plc.Rough import test_function_ss
 
 from plc.Write_rough import process_web_hw_status
-from system.SytemInfoClass import DeviceInformation
+
+
+def publish_data(client):
+    payload = json.dumps({
+        "HardWareID": 34,
+        "object": {
+            "ParameterName": "Connection",
+            "Value": "1111",
+            "AlarmID": "9999"
+        }
+    })
+    client.publish('iot', payload)
 
 
 class MQTTClient:
@@ -59,36 +66,16 @@ class MQTTClient:
         self.client.loop_start()
         self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
 
-    def check_sample_json(self):
-        json_file_path = 'dummy_data/sample.json'
-        try:
-            if os.path.exists(json_file_path):
-                with open(json_file_path, 'r') as json_file:
-                    data = json.load(json_file)
-
-                    if "HardwareID" not in data:
-                        self.logger.error(f"'{json_file_path}' does not have the 'HardwareID' object.")
-                        return False
-
-                    object_count = sum(1 for key in data.keys() if key.startswith("object"))
-                    if object_count < 2:
-                        self.logger.error(f"'{json_file_path}' does not have at least two objects.")
-                        return False
-                    return True
-            else:
-                self.logger.error(f"'{json_file_path}' not found.")
-                return False
-        except Exception as e:
-            self.logger.error(f"Error checking '{json_file_path}': {e}")
-            return False
-
-    def process_web_alarms(self, msg):
+    def process_hardware_list(self, msg):
+        serial_id = self.get_serial_id()
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        data = json.loads(m_decode)
+        hw_id = self.find_hardware_id(m_decode, str(serial_id))
 
-        if int(data.get("HardwareID")) == self.get_hw_id():
-            with open("dummy_data/sample.json", "w") as outfile:
-                json.dump(data, outfile)
+        self.logger.info(f"Serial Id : {serial_id}")
+        self.logger.info(f"Hardware Id : {hw_id}")
+        f = open('/home/pi/hardwareid.txt', 'w')
+        f.write(str(hw_id))
+        f.close()
 
     def get_serial_id(self):
         try:
@@ -130,25 +117,36 @@ class MQTTClient:
             self.logger.info(f"Error decoding JSON: {e}")
             return None
 
-    def periodic_update(self):
-        while not self.should_exit:
-            if self.connection_flag:
-                payload = json.dumps(
-                    {
-                        "HardWareID": self.get_hw_id(),
-                        "object": {
-                            "ParameterName": "Connection",
-                            "Value": "1111",
-                            "AlarmID": "9999"
-                        }
-                    }
-                )
+    def check_sample_json(self):
+        json_file_path = 'dummy_data/sample.json'
+        try:
+            if os.path.exists(json_file_path):
+                with open(json_file_path, 'r') as json_file:
+                    data = json.load(json_file)
 
-                result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"Connection Payload sent! Message ID: {mid}")
-                else:
-                    self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+                    if "HardwareID" not in data:
+                        self.logger.error(f"'{json_file_path}' does not have the 'HardwareID' object.")
+                        return False
+
+                    object_count = sum(1 for key in data.keys() if key.startswith("object"))
+                    if object_count < 2:
+                        self.logger.error(f"'{json_file_path}' does not have at least two objects.")
+                        return False
+                    return True
+            else:
+                self.logger.error(f"'{json_file_path}' not found.")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error checking '{json_file_path}': {e}")
+            return False
+
+    def process_web_alarms(self, msg):
+        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        data = json.loads(m_decode)
+
+        if int(data.get("HardwareID")) == self.get_hw_id():
+            with open("dummy_data/sample.json", "w") as outfile:
+                json.dump(data, outfile)
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -188,54 +186,29 @@ class MQTTClient:
 
             if hw_id == self.get_hw_id():
                 if operation == 'reboot':
-                    logger.info(f"Executing {operation}")
+                    self.logger.info(f"Executing {operation}")
                     self.execute_command("sudo reboot")
                 elif operation == 'net_restart':
-                    logger.info(f"Executing {operation}")
+                    self.logger.info(f"Executing {operation}")
                     self.execute_command("sudo systemctl restart networking")
                 elif operation == 'dataplicity_restart':
-                    logger.info(f"Executing {operation}")
+                    self.logger.info(f"Executing {operation}")
                     self.execute_command("sudo supervisorctl restart tuxtunnel")
                 elif operation == 'harp_restart':
-                    logger.info(f"Executing {operation}")
+                    self.logger.info(f"Executing {operation}")
                     self.execute_command("sudo systemctl restart harp")
                 elif operation == 'enable_gsm':
-                    logger.info(f"Executing {operation}")
+                    self.logger.info(f"Executing {operation}")
                     self.execute_command("sudo mmcli -m 0 -e")
 
         except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {e}")
+            self.logger.error(f"Error decoding JSON: {e}")
 
     def execute_command(self, command):
         try:
             subprocess.run(command, shell=True, check=True)
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error executing command: {e}")
-
-    def process_hardware_list(self, msg):
-        serial_id = self.get_serial_id()
-        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        hw_id = self.find_hardware_id(m_decode, str(serial_id))
-
-        self.logger.info(f"Serial Id : {serial_id}")
-        self.logger.info(f"Hardware Id : {hw_id}")
-        f = open('/home/pi/hardwareid.txt', 'w')
-        f.write(str(hw_id))
-        f.close()
-
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            self.connection_flag = True
-            self.logger.info("Connected to MQTT broker")
-        else:
-            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
-
-        client.subscribe('hardwarelist')
-        client.subscribe('remote-access')
-        client.subscribe('network')
-        client.subscribe('web-Alarms')
-        client.subscribe('web-hardwarestatus')
-        client.subscribe('operation')
+            self.logger.error(f"Error executing command: {e}")
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -251,8 +224,21 @@ class MQTTClient:
         elif topic == "operation":
             self.process_operation(msg)
 
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self.connection_flag = True
+            self.logger.info("Connected to MQTT broker")
+        else:
+            self.logger.error(f"Failed to connect to MQTT broker with result code {rc}")
+
+        client.subscribe('hardwarelist')
+        client.subscribe('remote-access')
+        client.subscribe('network')
+        client.subscribe('web-Alarms')
+        client.subscribe('web-hardwarestatus')
+        client.subscribe('operation')
+
     def on_publish(self, client, userdata, mid):
-        # self.logger.info("Message Published")
         pass
 
     def on_disconnect(self, client, userdata, rc):
@@ -279,24 +265,27 @@ class MQTTClient:
             self.should_exit = True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger, file_handler = log_config.setup_logger()
-    mqtt_instance = MQTTClient(logger)
 
-    update_timer = None
+    mqtt_client = MQTTClient(logger)
 
     try:
-        while not mqtt_instance.should_exit:
-            mqtt_instance.periodic_update()
-
-            if update_timer is None or not update_timer.is_alive():
-                update_timer = threading.Timer(1, mqtt_instance.periodic_update)
-                update_timer.start()
+        while not mqtt_client.should_exit:
+            publish_data(mqtt_client.client)
+            time.sleep(10)
 
     except KeyboardInterrupt:
-        mqtt_instance.should_exit = True
-        mqtt_instance.client.disconnect()
-        mqtt_instance.client.loop_stop()
-        if update_timer:
-            update_timer.cancel()
-        logger.info("Exiting gracefully...")
+        mqtt_client.should_exit = True
+        mqtt_client.client.disconnect()
+        mqtt_client.client.loop_stop()
+        logger.info("Exiting due to KeyboardInterrupt")
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        mqtt_client.should_exit = True
+        mqtt_client.client.disconnect()
+        mqtt_client.client.loop_stop()
+
+    finally:
+        logger.info("Script exited.")
