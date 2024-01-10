@@ -37,7 +37,7 @@ def publish_data(client):
             "AlarmID": "9999"
         }
     })
-    client.publish('iot-data3', payload)
+    client.publish('iot', payload)
 
 
 client = mqtt.Client(str(uuid.uuid1()))
