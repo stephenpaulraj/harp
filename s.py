@@ -10,7 +10,7 @@ user = "ehashmq1"
 password = "eHash@12mqtt34!"
 
 context = ssl.create_default_context()
-context.load_verify_locations(cafile="AmazonRootCA1.pem")  # Specify the CA file if needed
+context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
 
 def on_message(client, userdata, msg):
