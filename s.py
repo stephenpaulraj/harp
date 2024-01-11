@@ -18,6 +18,7 @@ context.load_verify_locations(cafile="AmazonRootCA1.pem")
 def on_message(client, userdata, msg):
     topic = msg.topic
     if topic == "remote-access":
+        print('Starting')
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         data = json.loads(m_decode)
         access = int(data.get("object", {}).get("Access", 0))
