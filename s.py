@@ -17,25 +17,26 @@ context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
 def on_message(client, userdata, msg):
     topic = msg.topic
-    m_decode = str(topic.payload.decode("UTF-8", "ignore"))
-    data = json.loads(m_decode)
-    access = int(data.get("object", {}).get("Access", 0))
-    if access == 0:
-        os.popen('/home/pi/rmoteStop.sh')
-        print(f"Remote Access (VPN) Stopped")
-    elif access == 1:
-        payload = json.dumps(
-            {
-                "HardWareID": 34,
-                "object": {
-                    "ParameterName": "Remote",
-                    "Value": "1111",
-                    "AlarmID": "8888"
+    if topic == "remote-access":
+        m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+        data = json.loads(m_decode)
+        access = int(data.get("object", {}).get("Access", 0))
+        if access == 0:
+            os.popen('/home/pi/rmoteStop.sh')
+            print(f"Remote Access (VPN) Stopped")
+        elif access == 1:
+            payload = json.dumps(
+                {
+                    "HardWareID": 34,
+                    "object": {
+                        "ParameterName": "Remote",
+                        "Value": "1111",
+                        "AlarmID": "8888"
+                    }
                 }
-            }
-        )
-        client.publish('iot-data3', payload=payload, qos=1, retain=True)
-        os.popen('/home/pi/rmoteStart.sh')
+            )
+            client.publish('iot-data3', payload=payload, qos=1, retain=True)
+            os.popen('/home/pi/rmoteStart.sh')
 
 
 def on_connect(client, userdata, flags, rc):
