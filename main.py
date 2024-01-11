@@ -239,7 +239,7 @@ class MQTTClient:
                     }
                 )
                 self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                self.execute_command("sudo systemctl stop harp")
+                # self.execute_command("sudo systemctl stop harp")
                 os.popen('/home/pi/rmoteStart.sh')
                 self.logger.info(f"Remote Access (VPN) Started")
         else:
