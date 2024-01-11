@@ -43,6 +43,7 @@ def on_message(client, userdata, msg):
 def on_connect(client, userdata, flags, rc):
     print(f"Connected with result code {rc}")
     client.subscribe('web-Alarms')
+    client.subscribe('remote-access')
     client.subscribe('web-hardwarestatus')
 
 
