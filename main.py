@@ -20,9 +20,9 @@ from system.SytemInfoClass import DeviceInformation
 
 class MQTTClient:
     def __init__(self, logger):
-        self.retry_interval = 10
+        self.retry_interval = 20
         self.retry_count = 0
-        self.max_retries = 5
+        self.max_retries = 50000
 
         self.last_checked_time = 0
         self.cached_result = None
