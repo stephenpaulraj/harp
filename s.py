@@ -17,7 +17,7 @@ context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
 def on_message(client, userdata, msg):
     topic = msg.topic
-    m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+    m_decode = str(topic.payload.decode("UTF-8", "ignore"))
     data = json.loads(m_decode)
     access = int(data.get("object", {}).get("Access", 0))
     if access == 0:
