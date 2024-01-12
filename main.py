@@ -227,6 +227,7 @@ class MQTTClient:
             if access == 0:
                 os.popen('/home/pi/rmoteStop.sh')
                 self.logger.info(f"Remote Access (VPN) Stopped")
+                self.execute_command("sudo systemctl restart harp")
             elif access == 1:
                 payload = json.dumps(
                     {
@@ -239,43 +240,11 @@ class MQTTClient:
                     }
                 )
                 self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                # self.execute_command("sudo systemctl stop harp")
                 os.popen('/home/pi/rmoteStart.sh')
                 self.logger.info(f"Remote Access (VPN) Started")
+                self.execute_command("sudo systemctl restart harp")
         else:
             self.logger.info("Access value not found in the JSON.")
-
-    # def process_remote_access(self, msg):
-    #     m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-    #     data = json.loads(m_decode)
-    #     hardware_id = int(data.get("HardWareID", 0))
-    #     access = int(data.get("object", {}).get("Access", 0))
-    #     if hardware_id == self.get_hw_id():
-    #         self.logger.info(f"The From portal HW is: {access}")
-    #         self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
-    #         self.logger.info(f"Session: {access}")
-    #         if access == 0:
-    #             self.client.disconnect()
-    #             os.popen('/home/pi/rmoteStop.sh')
-    #             self.logger.info(f"Remote Access (VPN) Stopped")
-    #             new_logger, new_file_handler = log_config.setup_logger()
-    #             new_mqtt_instance = MQTTClient(new_logger)
-    #             self.client = new_mqtt_instance.client
-    #             self.logger = new_logger
-    #             self.logger.info(f"(VPN) Stopped with New Instance")
-    #         elif access == 1:
-    #             self.client.disconnect()
-    #             os.popen('/home/pi/rmoteStart.sh')
-    #             self.logger.info(f"Remote Access (VPN) Started")
-    #             while not os.path.exists('/dev/net/tun0'):
-    #                 time.sleep(1)
-    #             new_logger, new_file_handler = log_config.setup_logger()
-    #             new_mqtt_instance = MQTTClient(new_logger)
-    #             self.client = new_mqtt_instance.client
-    #             self.logger = new_logger
-    #             self.logger.info(f"(VPN) Started with New Instance")
-    #     else:
-    #         self.logger.info("Access value not found in the JSON.")
 
     def process_operation(self, msg):
         try:
