@@ -34,7 +34,11 @@ def restart_vpn():
         time.sleep(1)
 
 
+vpn_stopped = False
+
+
 def on_message(client, userdata, msg):
+    global vpn_stopped
     topic = msg.topic
     if topic == "remote-access":
         print('Handling remote-access message')
@@ -44,17 +48,23 @@ def on_message(client, userdata, msg):
         if access == 0:
             os.popen(VPN_SCRIPT_STOP)
             print("Remote Access (VPN) Stopped")
-            client.disconnect()
-            time.sleep(1)
-            create_and_run_mqtt_client()
+            while check_vpn():
+                time.sleep(1)
+
+            vpn_stopped = True
+
         elif access == 1:
             os.popen(VPN_SCRIPT_START)
             print("Remote Access (VPN) Started")
             while not check_vpn():
                 time.sleep(1)
-            client.disconnect()
-            time.sleep(1)
-            create_and_run_mqtt_client()
+
+            vpn_stopped = False
+
+    if vpn_stopped:
+        client.disconnect()
+        time.sleep(1)
+        create_and_run_mqtt_client()
 
 
 def create_and_run_mqtt_client():
