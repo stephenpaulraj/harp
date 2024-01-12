@@ -14,18 +14,39 @@ password = "eHash@12mqtt34!"
 context = ssl.create_default_context()
 context.load_verify_locations(cafile="AmazonRootCA1.pem")
 
+VPN_SCRIPT_START = "/home/pi/rmoteStart.sh"
+VPN_SCRIPT_STOP = "/home/pi/rmoteStop.sh"
+CHECK_VPN_INTERVAL = 30  # seconds
+
+
+def check_vpn():
+    return os.system("ifconfig tun0") == 0
+
+
+def restart_vpn():
+    os.popen(VPN_SCRIPT_STOP)
+    print("Remote Access (VPN) Stopped")
+
+    for _ in range(CHECK_VPN_INTERVAL):
+        if not check_vpn():
+            os.popen(VPN_SCRIPT_START)
+            print("Remote Access (VPN) Started")
+            break
+        time.sleep(1)
+
 
 def on_message(client, userdata, msg):
     topic = msg.topic
     if topic == "remote-access":
-        print('Starting')
+        print('Handling remote-access message')
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         data = json.loads(m_decode)
         access = int(data.get("object", {}).get("Access", 0))
         if access == 0:
-            os.popen('/home/pi/rmoteStop.sh')
-            print(f"Remote Access (VPN) Stopped")
+            restart_vpn()
         elif access == 1:
+            os.popen(VPN_SCRIPT_START)
+            print("Remote Access (VPN) Started")
             payload = json.dumps(
                 {
                     "HardWareID": 34,
@@ -37,7 +58,6 @@ def on_message(client, userdata, msg):
                 }
             )
             client.publish('iot-data3', payload=payload, qos=1, retain=True)
-            os.popen('/home/pi/rmoteStart.sh')
 
 
 def on_connect(client, userdata, flags, rc):
@@ -71,13 +91,23 @@ client.on_message = on_message
 client.on_publish = on_publish
 client.tls_set_context(context=context)
 
-try:
+
+def establish_mqtt_connection():
+    if not check_vpn():
+        restart_vpn()
+
     client.connect(broker_address, port=port, keepalive=1000)
     client.loop_start()
 
+
+try:
     while True:
+        establish_mqtt_connection()
         publish_data(client)
         time.sleep(1)
+
+        # Additional sleep to avoid aggressive reconnection attempts
+        time.sleep(10)
 
 except KeyboardInterrupt:
     print("Interrupted. Disconnecting...")
