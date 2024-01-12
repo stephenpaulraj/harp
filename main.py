@@ -258,17 +258,22 @@ class MQTTClient:
                 self.client.disconnect()
                 os.popen('/home/pi/rmoteStop.sh')
                 self.logger.info(f"Remote Access (VPN) Stopped")
-                self.client.connect(self.broker_address, port=self.port, keepalive=60)
+                new_logger, new_file_handler = log_config.setup_logger()
+                new_mqtt_instance = MQTTClient(new_logger)
+                self.client = new_mqtt_instance.client
+                self.logger = new_logger
+                self.logger.info(f"(VPN) Stopped with New Instance")
             elif access == 1:
                 self.client.disconnect()
-                os.popen('/home/pi/rmoteStop.sh')
-                self.logger.info(f"Remote Access (VPN) Stopped")
                 os.popen('/home/pi/rmoteStart.sh')
                 self.logger.info(f"Remote Access (VPN) Started")
                 while not os.path.exists('/dev/net/tun0'):
                     time.sleep(1)
-                self.client.connect(self.broker_address, port=self.port, keepalive=60)
-
+                new_logger, new_file_handler = log_config.setup_logger()
+                new_mqtt_instance = MQTTClient(new_logger)
+                self.client = new_mqtt_instance.client
+                self.logger = new_logger
+                self.logger.info(f"(VPN) Started with New Instance")
         else:
             self.logger.info("Access value not found in the JSON.")
 
