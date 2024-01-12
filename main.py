@@ -62,6 +62,8 @@ class MQTTClient:
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
+        self.first_run = True
+
     def is_eth1_interface_present(self):
         with IPRoute() as ipr:
             try:
@@ -225,27 +227,31 @@ class MQTTClient:
             self.logger.info(f"The From portal HW is: {access}")
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
             self.logger.info(f"Session: {access}")
-            if access == 0:
-                os.popen('/home/pi/rmoteStop.sh')
-                self.logger.info(f"Remote Access (VPN) Stopped")
-                self.execute_command("sudo systemctl restart harp")
-                sys.exit()
-            elif access == 1:
-                payload = json.dumps(
-                    {
-                        "HardWareID": int(self.get_hw_id()),
-                        "object": {
-                            "ParameterName": "Remote",
-                            "Value": "1111",
-                            "AlarmID": "8888"
+            if self.first_run:
+                # Ignore the first message
+                self.first_run = False
+            else:
+                if access == 0:
+                    os.popen('/home/pi/rmoteStop.sh')
+                    self.logger.info(f"Remote Access (VPN) Stopped")
+                    self.execute_command("sudo systemctl restart harp")
+                    sys.exit()
+                elif access == 1:
+                    payload = json.dumps(
+                        {
+                            "HardWareID": int(self.get_hw_id()),
+                            "object": {
+                                "ParameterName": "Remote",
+                                "Value": "1111",
+                                "AlarmID": "8888"
+                            }
                         }
-                    }
-                )
-                self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                os.popen('/home/pi/rmoteStart.sh')
-                self.logger.info(f"Remote Access (VPN) Started")
-                self.execute_command("sudo systemctl restart harp")
-                sys.exit()
+                    )
+                    self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    os.popen('/home/pi/rmoteStart.sh')
+                    self.logger.info(f"Remote Access (VPN) Started")
+                    self.execute_command("sudo systemctl restart harp")
+                    sys.exit()
         else:
             self.logger.info("Access value not found in the JSON.")
 
