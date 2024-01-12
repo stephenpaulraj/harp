@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import threading
 import time
 
@@ -228,6 +229,7 @@ class MQTTClient:
                 os.popen('/home/pi/rmoteStop.sh')
                 self.logger.info(f"Remote Access (VPN) Stopped")
                 self.execute_command("sudo systemctl restart harp")
+                sys.exit()
             elif access == 1:
                 payload = json.dumps(
                     {
@@ -243,6 +245,7 @@ class MQTTClient:
                 os.popen('/home/pi/rmoteStart.sh')
                 self.logger.info(f"Remote Access (VPN) Started")
                 self.execute_command("sudo systemctl restart harp")
+                sys.exit()
         else:
             self.logger.info("Access value not found in the JSON.")
 
