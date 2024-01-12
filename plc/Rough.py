@@ -1,5 +1,3 @@
-import uuid
-import time
 from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.utils import encode_ieee, decode_ieee, \
     long_list_to_word, word_list_to_long
@@ -34,43 +32,43 @@ def floatC(reg5):
     f = []
     s = ""
     for i in range(len(reg5)):
-        if reg5[i] is not None:
+        try:
+
             s = [str(ft) for ft in reg5[i]]
-            # s=round(s,2)
+
             a_string = "".join(s)
+
             res = str(a_string)
+
             f.append(res)
-        else:
-            f.append("N/A")
-    return f
 
+        except Exception as x:
+            print(x)
 
-# def intC(reg91):
-#     global t
-#     t = []
-#     ss = ""
-#     for i in range(len(reg91)):
-#         ss = [str(ft) for ft in reg91[i]]
-#         # s=round(s,2)
-#         a_string = "".join(ss)
-#
-#         ress = str(a_string)
-#
-#         t.append(ress)
-#     return (t)
+    res = list(filter(lambda item: item is not None, f))
+    return (res)
+
 
 def intC(reg91):
     global t
     t = []
+    ss = ""
+
     for i in range(len(reg91)):
-        if reg91[i] is not None:
+        try:
+
             ss = [str(ft) for ft in reg91[i]]
             a_string = "".join(ss)
+
             ress = str(a_string)
+
             t.append(ress)
-        else:
-            t.append("None")
-    return t
+        except Exception as x:
+            print(x)
+
+    res = list(filter(lambda item: item is not None, t))
+    return (res)
+
 
 def Cloning(li1):
     li_copy = li1[:]
@@ -83,8 +81,6 @@ def unique(list1):
     for x in list1:
         if x not in unique_list:
             unique_list.append(x)
-    # for x in unique_list:
-    #     print(x)
 
 
 def CountFrequency(my_list):
@@ -184,7 +180,7 @@ def pop(la, number):
 
 def parse_msg():
     try:
-        with open('/home/pi/sample.json', 'r') as openfile:
+        with open('/home/pi/harp/dummy_data/sample.json', 'r') as openfile:
             m_in = json.load(openfile)
 
         global m
@@ -200,8 +196,7 @@ def parse_msg():
         alarmID = []
         name = []
         add = []
-        # datT=[]
-        # alarmID=[]
+
         price = ""
         price1 = ""
         price2 = ""
@@ -284,6 +279,7 @@ def parse_msg():
         global integer_l
         integer_l = len(int2)
 
+
     except FileNotFoundError:
         print('File does not exist')
 
@@ -353,22 +349,22 @@ def test_function_ss(c):
 
                 reg6.append(res)
             else:
+
                 reg6.append("None")
 
+        reg6 = list(filter(lambda item: item is not 'None', reg6))
+        print(reg6)
         integer = []
         for i in range(len(reg6)):
             integer.append(reg6[i])
         binary = []
-        int1 = 484
-        bi1 = bin(int1)
-
         for i in range(len(integer)):
             regs_2_bin = str(format(integer[i], '016b'))
+
             binary.append(regs_2_bin)
 
-        regs_1_bin = str(format(int1, '016b'))
-
         res_final = []
+
         for i in range(len(binary)):
             res10 = []
             for x in range(16):
@@ -390,17 +386,18 @@ def test_function_ss(c):
             Dict["object" + str(i)] = {}
 
         for i in range(len(name)):
-            Dict["object" + str(i)]['Description'] = "111"
-            Dict["object" + str(i)]['ParameterName'] = name[i]
-            Dict["object" + str(i)]['value'] = final[i]
-            Dict["object" + str(i)]['AlarmID'] = alarmID[i]
+            try:
 
-        res = []
-        for x in range(16):
-            res.append(regs_1_bin[x])
-        tags_bool = 0
-        for i in range(len(R1)):
-            tags_bool = tags_bool + R1[i]
-        final = [0 for i in range(len(name))]
+                Dict["object" + str(i)]['Description'] = "111"
+                Dict["object" + str(i)]['ParameterName'] = name[i]
+                Dict["object" + str(i)]['value'] = final[i]
+                Dict["object" + str(i)]['AlarmID'] = alarmID[i]
+
+            except Exception as x:
+                print(x)
+
     payload = json.dumps(Dict)
+
+    with open("/home/pi/harp/dummy_data/payload.json", "w") as outfile:
+        json.dump(payload, outfile)
     return payload
