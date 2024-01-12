@@ -1,11 +1,10 @@
 import json
 import os
+import subprocess
 import threading
 import time
 
 from pyModbusTCP.client import ModbusClient
-
-from pyModbusTCP.utils import word_list_to_long, decode_ieee
 from pyroute2 import IPRoute
 import paho.mqtt.client as mqtt
 import ssl
@@ -15,9 +14,16 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 from log_helper import log_config
 from plc.Rough import test_function_ss
 
+from plc.Write_rough import process_web_hw_status
+from system.SytemInfoClass import DeviceInformation
+
 
 class MQTTClient:
     def __init__(self, logger):
+        self.retry_interval = 20
+        self.retry_count = 0
+        self.max_retries = 50000
+
         self.last_checked_time = 0
         self.cached_result = None
         self.cached_data = None
@@ -34,6 +40,9 @@ class MQTTClient:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_publish = self.on_publish
+
+        self.client.on_disconnect = self.on_disconnect
+        self.client.on_log = self.on_log
 
         self.connection_flag = False
 
@@ -56,19 +65,58 @@ class MQTTClient:
         with IPRoute() as ipr:
             try:
                 eth1_interface = ipr.link_lookup(ifname='eth1')
-                return bool(eth1_interface)
+                if not eth1_interface:
+                    self.logger.error("eth1 interface not found.")
+                    return False
+
+                eth1_ip = self.get_interface_ip('eth1')
+                if eth1_ip != '192.168.3.11':
+                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+                    return False
+
+                if not self.check_sample_json():
+                    self.logger.error("'Problem with Web-Alarm Json File.")
+                    return False
+                self.logger.info("All (Device, PLC, Network) checklist passed.")
+                return True
             except Exception as e:
                 self.logger.error(f"Error checking eth1 interface: {e}")
                 return False
 
-    def is_tun0_interface_present(self):
-        with IPRoute() as ipr:
-            try:
-                tun0_interface = ipr.link_lookup(ifname='tun0')
-                return bool(tun0_interface)
-            except Exception as e:
-                self.logger.error(f"Error checking tun0 interface: {e}")
+    def get_interface_ip(self, interface_name):
+        try:
+            import netifaces
+            addresses = netifaces.ifaddresses(interface_name)
+            if netifaces.AF_INET in addresses:
+                return addresses[netifaces.AF_INET][0]['addr']
+            else:
+                return None
+        except Exception as e:
+            self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
+            return None
+
+    def check_sample_json(self):
+        json_file_path = 'dummy_data/sample.json'
+        try:
+            if os.path.exists(json_file_path):
+                with open(json_file_path, 'r') as json_file:
+                    data = json.load(json_file)
+
+                    if "HardwareID" not in data:
+                        self.logger.error(f"'{json_file_path}' does not have the 'HardwareID' object.")
+                        return False
+
+                    object_count = sum(1 for key in data.keys() if key.startswith("object"))
+                    if object_count < 2:
+                        self.logger.error(f"'{json_file_path}' does not have at least two objects.")
+                        return False
+                    return True
+            else:
+                self.logger.error(f"'{json_file_path}' not found.")
                 return False
+        except Exception as e:
+            self.logger.error(f"Error checking '{json_file_path}': {e}")
+            return False
 
     def process_web_alarms(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
@@ -132,57 +180,135 @@ class MQTTClient:
                         }
                     }
                 )
-                self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                self.logger.info(f"Connection Payload send!")
+                device_info_obj = DeviceInformation()
+                device_info_obj.get_device_info()
+                dev_payload = device_info_obj.to_json()
+
                 if self.is_eth1_interface_present():
-                    self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
-                    self.logger.info(f"PLC Payload send!")
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-    def get_remote(self, json_data):
-        try:
-            data = json.loads(json_data)
-            if "object" in data:
-                object_data = data["object"]
-                if "Access" in object_data and "HardWareID" in data:
-                    access_value = object_data["Access"]
-                    hardware_id = data["HardWareID"]
-                    hw_id = str(hardware_id)
-                    return access_value, hw_id
+                    result, mid = self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"PLC Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
 
-        except json.JSONDecodeError as e:
-            self.logger.info(f"Error decoding JSON: {e}")
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
+                else:
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
+
+    # def process_remote_access(self, msg):
+    #     m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+    #     data = json.loads(m_decode)
+    #     hardware_id = int(data.get("HardWareID", 0))
+    #     access = int(data.get("object", {}).get("Access", 0))
+    #     if hardware_id == self.get_hw_id():
+    #         self.logger.info(f"The From portal HW is: {access}")
+    #         self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
+    #         self.logger.info(f"Session: {access}")
+    #         if access == 0:
+    #             os.popen('/home/pi/rmoteStop.sh')
+    #             self.logger.info(f"Remote Access (VPN) Stopped")
+    #         elif access == 1:
+    #             payload = json.dumps(
+    #                 {
+    #                     "HardWareID": int(self.get_hw_id()),
+    #                     "object": {
+    #                         "ParameterName": "Remote",
+    #                         "Value": "1111",
+    #                         "AlarmID": "8888"
+    #                     }
+    #                 }
+    #             )
+    #             self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+    #             # self.execute_command("sudo systemctl stop harp")
+    #             os.popen('/home/pi/rmoteStart.sh')
+    #             self.logger.info(f"Remote Access (VPN) Started")
+    #     else:
+    #         self.logger.info("Access value not found in the JSON.")
 
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
-        access_value, hardware_id = self.get_remote(m_decode)
+        data = json.loads(m_decode)
+        hardware_id = int(data.get("HardWareID", 0))
+        access = int(data.get("object", {}).get("Access", 0))
         if hardware_id == self.get_hw_id():
-            self.logger.info(f"The HW is: {self.get_hw_id()}")
-            if access_value is not None:
-                self.logger.info(f"The Access value is: {access_value}")
-                if access_value == "0":
-                    os.popen('/home/pi/rmoteStop.sh')
-                    self.logger.info(f"Remote Access (VPN) Stopped")
-                if access_value == "1":
-                    os.popen('/home/pi/rmoteStart.sh')
-                    self.logger.info(f"Remote Access (VPN) Started")
-                    # find Tun0 available (send Payload) tun0 i up
-                    if self.is_tun0_interface_present():
-                        self.logger.info("tun0 interface is present. Sending payload.")
-                        payload = json.dumps(
-                            {
-                                "HardWareID": int(self.get_hw_id()),
-                                "object": {
-                                    "ParameterName": "Remote",
-                                    "Value": "1111",
-                                    "AlarmID": "8888"
-                                }
-                            }
-                        )
-                        self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                    else:
-                        self.logger.info("tun0 interface is not present.")
+            self.logger.info(f"The From portal HW is: {access}")
+            self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
+            self.logger.info(f"Session: {access}")
+            if access == 0:
+                self.client.disconnect()
+                os.popen('/home/pi/rmoteStop.sh')
+                self.logger.info(f"Remote Access (VPN) Stopped")
+                new_logger, new_file_handler = log_config.setup_logger()
+                new_mqtt_instance = MQTTClient(new_logger)
+                self.client = new_mqtt_instance.client
+                self.logger = new_logger
+                self.logger.info(f"(VPN) Stopped with New Instance")
+            elif access == 1:
+                self.client.disconnect()
+                os.popen('/home/pi/rmoteStart.sh')
+                self.logger.info(f"Remote Access (VPN) Started")
+                while not os.path.exists('/dev/net/tun0'):
+                    time.sleep(1)
+                new_logger, new_file_handler = log_config.setup_logger()
+                new_mqtt_instance = MQTTClient(new_logger)
+                self.client = new_mqtt_instance.client
+                self.logger = new_logger
+                self.logger.info(f"(VPN) Started with New Instance")
         else:
             self.logger.info("Access value not found in the JSON.")
+
+    def process_operation(self, msg):
+        try:
+            m_decode = str(msg.payload.decode("UTF-8", "ignore"))
+            data = json.loads(m_decode)
+            hw_id = int(data.get("hw_id"))
+            operation = data.get("operation")
+
+            if hw_id == self.get_hw_id():
+                if operation == 'reboot':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo reboot")
+                elif operation == 'net_restart':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo systemctl restart networking")
+                elif operation == 'dataplicity_restart':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo supervisorctl restart tuxtunnel")
+                elif operation == 'harp_restart':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo systemctl restart harp")
+                elif operation == 'enable_gsm':
+                    logger.info(f"Executing {operation}")
+                    self.execute_command("sudo mmcli -m 0 -e")
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {e}")
+
+    def execute_command(self, command):
+        try:
+            subprocess.run(command, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error executing command: {e}")
 
     def process_hardware_list(self, msg):
         serial_id = self.get_serial_id()
@@ -192,7 +318,6 @@ class MQTTClient:
         self.logger.info(f"Serial Id : {serial_id}")
         self.logger.info(f"Hardware Id : {hw_id}")
         f = open('/home/pi/hardwareid.txt', 'w')
-        # f = open('dummy_data/hardwareid.txt', 'w')
         f.write(str(hw_id))
         f.close()
 
@@ -208,6 +333,7 @@ class MQTTClient:
         client.subscribe('network')
         client.subscribe('web-Alarms')
         client.subscribe('web-hardwarestatus')
+        client.subscribe('operation')
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -218,23 +344,47 @@ class MQTTClient:
             self.process_web_alarms(msg)
         elif topic == "remote-access":
             self.process_remote_access(msg)
+        elif topic == "web-hardwarestatus":
+            process_web_hw_status(msg, self.c, self.logger)
+        elif topic == "operation":
+            self.process_operation(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
         pass
 
+    def on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            self.logger.error(f"Disconnected from MQTT broker with result code {rc}")
+            self.retry_connect()
+
+    def on_log(self, client, userdata, level, buf):
+        self.logger.debug(buf)
+
+    def retry_connect(self):
+        self.retry_count += 1
+        if self.retry_count <= self.max_retries:
+            self.logger.info(
+                f"Retrying connection in {self.retry_interval} seconds (Attempt {self.retry_count}/{self.max_retries})")
+            time.sleep(self.retry_interval)
+            try:
+                self.client.reconnect()
+            except Exception as e:
+                self.logger.error(f"Error during reconnection attempt: {e}")
+                self.retry_connect()  # Retry again on failure
+        else:
+            self.logger.error("Maximum retries reached. Exiting...")
+            self.should_exit = True
+
 
 if __name__ == '__main__':
     logger, file_handler = log_config.setup_logger()
-    internet_status = check_internet_connection()
+    mqtt_instance = MQTTClient(logger)
+    try:
+        while not mqtt_instance.should_exit:
+            pass
 
-    if internet_status:
-        mqtt_instance = MQTTClient(logger)
-        try:
-            while True:
-                pass
-
-        except KeyboardInterrupt:
-            mqtt_instance.should_exit = True
-            mqtt_instance.periodic_update_thread.join()
-            logger.info("Exiting gracefully...")
+    except KeyboardInterrupt:
+        mqtt_instance.should_exit = True
+        mqtt_instance.periodic_update_thread.join()
+        logger.info("Exiting gracefully...")
