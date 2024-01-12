@@ -62,8 +62,8 @@ def on_message(client, userdata, msg):
             vpn_stopped = False
 
     if vpn_stopped:
+        time.sleep(1)  # Wait for disconnect to complete
         client.disconnect()
-        time.sleep(1)
         create_and_run_mqtt_client()
 
 
