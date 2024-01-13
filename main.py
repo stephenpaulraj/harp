@@ -232,9 +232,15 @@ class MQTTClient:
             else:
                 if access == 0:
                     os.popen('/home/pi/rmoteStop.sh')
-                    self.logger.info(f"Remote Access (VPN) Stopped")
-                    self.execute_command("sudo systemctl restart harp")
-                    sys.exit()
+                    while self.check_tun0_available():
+                        time.sleep(1)
+                    if not self.check_tun0_available():
+                        self.logger.info(f"Remote Access (VPN) Stopped")
+                        self.execute_command("sudo systemctl restart harp")
+                        sys.exit()
+                    else:
+                        self.logger.error("tun0 still available after stopping. There might be an error.")
+                        sys.exit()
                 elif access == 1:
                     payload = json.dumps(
                         {
@@ -248,11 +254,24 @@ class MQTTClient:
                     )
                     self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
                     os.popen('/home/pi/rmoteStart.sh')
-                    self.logger.info(f"Remote Access (VPN) Started")
-                    self.execute_command("sudo systemctl restart harp")
-                    sys.exit()
+                    while not self.check_tun0_available():
+                        time.sleep(1)
+
+                    if self.check_tun0_available():
+                        self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
+                        self.execute_command("sudo systemctl restart harp")
+                        sys.exit()
+                    else:
+                        self.logger.error("tun0 not available. There might be an error.")
         else:
             self.logger.info("Access value not found in the JSON.")
+
+    def check_tun0_available(self):
+        try:
+            output = subprocess.check_output(["ip", "a", "show", "tun0"])
+            return b"tun0" in output
+        except subprocess.CalledProcessError:
+            return False
 
     def process_operation(self, msg):
         try:
