@@ -231,16 +231,23 @@ class MQTTClient:
                 self.first_run = False
             else:
                 if access == 0:
-                    os.popen('/home/pi/rmoteStop.sh')
-                    while self.check_tun0_available():
-                        time.sleep(1)
-                    if not self.check_tun0_available():
-                        self.logger.info(f"Remote Access (VPN) Stopped")
-                        self.execute_command("sudo systemctl restart harp")
-                        sys.exit()
+                    command = '/home/pi/rmoteStop.sh'
+                    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if result.returncode == 0:
+                        self.logger.info(f"VPN Stop Command ran successfully. Checking for removal of tun0 .....")
+                        while self.check_tun0_available():
+                            time.sleep(1)
+                        if not self.check_tun0_available():
+                            self.logger.info(f"Remote Access (VPN) Stopped")
+                            self.execute_command("sudo systemctl restart harp")
+                            sys.exit()
+                        else:
+                            self.logger.error("tun0 still available after stopping. There might be an error.")
+                            sys.exit()
                     else:
-                        self.logger.error("tun0 still available after stopping. There might be an error.")
-                        sys.exit()
+                        self.logger.info(f"Command '{command}' failed with exit code {result.returncode}.")
+                        self.logger.info("Error output:")
+                        self.logger.info(result.stderr.decode())
                 elif access == 1:
                     payload = json.dumps(
                         {
@@ -253,16 +260,24 @@ class MQTTClient:
                         }
                     )
                     self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                    os.popen('/home/pi/rmoteStart.sh')
-                    while not self.check_tun0_available():
-                        time.sleep(1)
+                    command = '/home/pi/rmoteStart.sh'
+                    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if result.returncode == 0:
+                        self.logger.info(f"VPN Start Command ran successfully. Checking for tun0.....")
+                        while not self.check_tun0_available():
+                            time.sleep(1)
 
-                    if self.check_tun0_available():
-                        self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
-                        self.execute_command("sudo systemctl restart harp")
-                        sys.exit()
+                        if self.check_tun0_available():
+                            self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
+                            self.execute_command("sudo systemctl restart harp")
+                            sys.exit()
+                        else:
+                            self.logger.error("tun0 not available. There might be an error.")
                     else:
-                        self.logger.error("tun0 not available. There might be an error.")
+                        self.logger.info(f"Command '{command}' failed with exit code {result.returncode}.")
+                        self.logger.info("Error output:")
+                        self.logger.info(result.stderr.decode())
+
         else:
             self.logger.info("Access value not found in the JSON.")
 
