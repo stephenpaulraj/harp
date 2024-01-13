@@ -228,7 +228,6 @@ class MQTTClient:
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
             self.logger.info(f"Session: {access}")
             if self.first_run:
-                # Ignore the first message
                 self.first_run = False
             else:
                 if access == 0:
