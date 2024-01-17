@@ -58,7 +58,7 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-        self.c = ModbusClient(host='192.168.0.1', port=502, auto_open=True, debug=False)
+        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
@@ -69,18 +69,21 @@ class MQTTClient:
             try:
                 eth1_interface = ipr.interfaces.eth1.operstate
                 if (eth1_interface == "UP"):
-                    eth1_interface = True
+                    eth1_ip = self.get_interface_ip('eth1')
+                    self.logger.error(f"eth1 IP ', found: {eth1_ip}")
+                    # eth1_interface=True
                 else:
-                    eth1_interface = False
-
-                if not eth1_interface:
+                    # eth1_interface=False
                     self.logger.error("eth1 interface not found.")
-                    return False
 
-                eth1_ip = self.get_interface_ip('eth1')
-                if eth1_ip != '192.168.0.11':
-                    self.logger.error(f"eth1 IP is not '192.168.0.11', found: {eth1_ip}")
-                    return False
+                # if not eth1_interface:
+                #    self.logger.error("eth1 interface not found.")
+                #    return False
+
+                # eth1_ip = self.get_interface_ip('eth1')
+                # if eth1_ip != '192.168.3.11':
+                #    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+                #    return False
 
                 if not self.check_sample_json():
                     self.logger.error("'Problem with Web-Alarm Json File.")
