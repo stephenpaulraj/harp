@@ -6,7 +6,7 @@ import threading
 import time
 
 from pyModbusTCP.client import ModbusClient
-from pyroute2 import IPRoute
+from pyroute2 import IPDB
 import paho.mqtt.client as mqtt
 import ssl
 import uuid
@@ -58,23 +58,28 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+        self.c = ModbusClient(host='192.168.0.1', port=502, auto_open=True, debug=False)
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
         self.first_run = True
 
     def is_eth1_interface_present(self):
-        with IPRoute() as ipr:
+        with IPDB() as ipr:
             try:
-                eth1_interface = ipr.link_lookup(ifname='eth1')
+                eth1_interface = ipr.interfaces.eth1.operstate
+                if (eth1_interface == "UP"):
+                    eth1_interface = True
+                else:
+                    eth1_interface = False
+
                 if not eth1_interface:
                     self.logger.error("eth1 interface not found.")
                     return False
 
                 eth1_ip = self.get_interface_ip('eth1')
-                if eth1_ip != '192.168.3.11':
-                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+                if eth1_ip != '192.168.0.11':
+                    self.logger.error(f"eth1 IP is not '192.168.0.11', found: {eth1_ip}")
                     return False
 
                 if not self.check_sample_json():
