@@ -235,25 +235,21 @@ class MQTTClient:
             if self.first_run:
                 self.first_run = False
             else:
-                if access == 0:
+                if access == 0 and self.check_tun0_available():
                     command = '/home/pi/rmoteStop.sh'
-                    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    if result.returncode == 0:
-                        self.logger.info(f"VPN Stop Command ran successfully. Checking for removal of tun0 .....")
+                    result_code, _, stderr = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if result_code == 0:
+                        self.logger.info(f"VPN Stop Command ran successfully. Checking for removal of tun0 ...")
                         while self.check_tun0_available():
                             time.sleep(1)
-                        if not self.check_tun0_available():
-                            self.logger.info(f"Remote Access (VPN) Stopped")
-                            self.execute_command("sudo systemctl restart harp")
-                            sys.exit()
-                        else:
-                            self.logger.error("tun0 still available after stopping. There might be an error.")
-                            sys.exit()
+                        self.logger.info("Remote Access (VPN) Stopped")
+                        self.execute_command("sudo systemctl restart harp")
+                        sys.exit()
                     else:
-                        self.logger.info(f"Command '{command}' failed with exit code {result.returncode}.")
-                        self.logger.info("Error output:")
-                        self.logger.info(result.stderr.decode())
-                elif access == 1:
+                        self.logger.error(f"Command '{command}' failed with exit code {result_code}.")
+                        self.logger.error("Error output:")
+                        self.logger.error(stderr.decode())
+                elif access == 1 and not self.check_tun0_available():
                     payload = json.dumps(
                         {
                             "HardWareID": int(self.get_hw_id()),
@@ -271,18 +267,13 @@ class MQTTClient:
                         self.logger.info(f"VPN Start Command ran successfully. Checking for tun0.....")
                         while not self.check_tun0_available():
                             time.sleep(1)
-
-                        if self.check_tun0_available():
-                            self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
-                            self.execute_command("sudo systemctl restart harp")
-                            sys.exit()
-                        else:
-                            self.logger.error("tun0 not available. There might be an error.")
+                        self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
+                        self.execute_command("sudo systemctl restart harp")
+                        sys.exit()
                     else:
                         self.logger.info(f"Command '{command}' failed with exit code {result.returncode}.")
                         self.logger.info("Error output:")
                         self.logger.info(result.stderr.decode())
-
         else:
             self.logger.info("Access value not found in the JSON.")
 
