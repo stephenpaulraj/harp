@@ -68,7 +68,7 @@ class MQTTClient:
         with IPDB() as ipr:
             try:
                 eth1_interface = ipr.interfaces.eth1.operstate
-                if (eth1_interface == "UP"):
+                if eth1_interface == "UP":
                     eth1_interface = True
                 else:
                     eth1_interface = False
@@ -261,6 +261,7 @@ class MQTTClient:
                         }
                     )
                     self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    time.sleep(5)
                     command = '/home/pi/rmoteStart.sh'
                     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if result.returncode == 0:
@@ -349,8 +350,8 @@ class MQTTClient:
             self.process_hardware_list(msg)
         elif topic == "web-Alarms":
             self.process_web_alarms(msg)
-        elif topic == "remote-access":
-            self.process_remote_access(msg)
+        # elif topic == "remote-access":
+        #     self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
             process_web_hw_status(msg, self.c, self.logger)
         elif topic == "operation":
