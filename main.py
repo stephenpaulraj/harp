@@ -263,6 +263,7 @@ class MQTTClient:
                                 result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
                                 harp_restart_success = (result.returncode == 0)
                                 if harp_restart_success:
+                                    subprocess.run('sudo supervisorctl restart tuxtunnel', shell=True, check=True)
                                     self.logger.info("Harp Service restarted, exiting current process..")
                                     self.exit_gracefully()
                 elif not self.check_tun0_available():
@@ -298,6 +299,7 @@ class MQTTClient:
                                     result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
                                     harp_restart_success = (result.returncode == 0)
                                     if harp_restart_success:
+                                        subprocess.run('sudo supervisorctl restart tuxtunnel', shell=True, check=True)
                                         self.logger.info("Harp Service restarted, exiting current process..")
                                         self.exit_gracefully()
                     except subprocess.CalledProcessError as e:
