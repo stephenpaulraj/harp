@@ -64,6 +64,12 @@ class MQTTClient:
 
         self.first_run = True
 
+    def exit_gracefully(self):
+        self.should_exit = True
+        self.periodic_update_thread.join()
+        self.client.disconnect()
+        sys.exit()
+
     def is_eth1_interface_present(self):
         with IPDB() as ipr:
             try:
@@ -227,28 +233,33 @@ class MQTTClient:
         data = json.loads(m_decode)
         hardware_id = int(data.get("HardWareID", 0))
         access = int(data.get("object", {}).get("Access", 0))
+        self.logger.info(f"The From portal HW is: {hardware_id}")
+        self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
         if hardware_id == self.get_hw_id():
             self.logger.info(f"The From portal HW is: {access}")
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
             self.logger.info(f"Session: {access}")
-            if self.first_run:
-                self.first_run = False
-            else:
-                if access == 0 and self.check_tun0_available():
-                    command = '/home/pi/rmoteStop.sh'
-                    result_code, _, stderr = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    if result_code == 0:
-                        self.logger.info(f"VPN Stop Command ran successfully. Checking for removal of tun0 ...")
-                        while self.check_tun0_available():
-                            time.sleep(1)
-                        self.logger.info("Remote Access (VPN) Stopped")
-                        self.execute_command("sudo systemctl restart harp")
-                        sys.exit()
-                    else:
-                        self.logger.error(f"Command '{command}' failed with exit code {result_code}.")
-                        self.logger.error("Error output:")
-                        self.logger.error(stderr.decode())
-                elif access == 1 and not self.check_tun0_available():
+            if access == 0:
+                self.logger.info(f"tun0 Status {self.check_tun0_available()}")
+                if self.check_tun0_available():
+                    result = subprocess.run('sudo pkill openvpn', shell=True, check=True)
+                    stop_command_executed_successfully = (result.returncode == 0)
+                    if stop_command_executed_successfully:
+                        self.logger.info("VPN Stop Command executed, Waiting 30Sec for the tun0 to go.")
+                        time.sleep(30)
+                        if not self.check_tun0_available():
+                            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                            harp_restart_success = (result.returncode == 0)
+                            if harp_restart_success:
+                                self.logger.info("Harp Service restarted, exiting current process..")
+                                self.exit_gracefully()
+                elif not self.check_tun0_available():
+                    self.logger.info(f"No tun0 present, hence no need of any action.")
+            elif access == 1:
+                if self.check_tun0_available():
+                    self.logger.info(f"Already tun0 opened, hence no need of any action.")
+                elif not self.check_tun0_available():
+                    self.logger.info(f"tun0 not present, Sending Payload and starting tunnel..")
                     payload = json.dumps(
                         {
                             "HardWareID": int(self.get_hw_id()),
@@ -259,28 +270,37 @@ class MQTTClient:
                             }
                         }
                     )
-                    self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
-                    time.sleep(5)
-                    command = '/home/pi/rmoteStart.sh'
-                    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    if result.returncode == 0:
-                        self.logger.info(f"VPN Start Command ran successfully. Checking for tun0.....")
-                        while not self.check_tun0_available():
-                            time.sleep(1)
-                        self.logger.info(f"Remote Access (VPN) Started. tun0 interface found.")
-                        self.execute_command("sudo systemctl restart harp")
-                        sys.exit()
-                    else:
-                        self.logger.info(f"Command '{command}' failed with exit code {result.returncode}.")
-                        self.logger.info("Error output:")
-                        self.logger.info(result.stderr.decode())
+                    result, mid = self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
+                        time.sleep(3)
+                    try:
+                        result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
+                                                check=True)
+                        command_executed_successfully = (result.returncode == 0)
+                        if command_executed_successfully:
+                            self.logger.info("VPN Start Command executed, Waiting 60Sec for the tun0 to come up.")
+                            time.sleep(60)
+                            if self.check_tun0_available():
+                                self.logger.info("tun0 available : Restarting Harp Services..")
+                                result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                                harp_restart_success = (result.returncode == 0)
+                                if harp_restart_success:
+                                    self.logger.info("Harp Service restarted, exiting current process..")
+                                    self.exit_gracefully()
+                        else:
+                            self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
+                    except subprocess.CalledProcessError as e:
+                        self.logger.info(f"Error executing command: {e}")
+            else:
+                self.logger.error("Invalid Access code received.")
         else:
             self.logger.info("Access value not found in the JSON.")
 
     def check_tun0_available(self):
         try:
-            output = subprocess.check_output(["ip", "a", "show", "tun0"])
-            return b"tun0" in output
+            subprocess.check_output(["ip", "a", "show", "tun0"])
+            return True
         except subprocess.CalledProcessError:
             return False
 
@@ -349,8 +369,8 @@ class MQTTClient:
             self.process_hardware_list(msg)
         elif topic == "web-Alarms":
             self.process_web_alarms(msg)
-        # elif topic == "remote-access":
-        #     self.process_remote_access(msg)
+        elif topic == "remote-access":
+            self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
             process_web_hw_status(msg, self.c, self.logger)
         elif topic == "operation":
@@ -395,3 +415,4 @@ if __name__ == '__main__':
         mqtt_instance.should_exit = True
         mqtt_instance.periodic_update_thread.join()
         logger.info("Exiting gracefully...")
+        mqtt_instance.exit_gracefully()
