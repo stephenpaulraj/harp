@@ -292,7 +292,7 @@ class MQTTClient:
                         if start_command_executed_successfully:
                             if self.is_service_running('openvpn_start'):
                                 self.logger.info("VPN Start Service is running, Waiting 10Sec for the tun0 to come up.")
-                                time.sleep(10)
+                                time.sleep(2)
                                 if self.check_tun0_available():
                                     self.logger.info("tun0 available : Restarting Harp Services..")
                                     result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
