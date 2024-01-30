@@ -204,7 +204,7 @@ class MQTTClient:
             if access == 0:
                 self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
                 if self.check_tun0_available():
-                    self.logger.info(f"Sequence 2: tun0 present Executing Step 3")
+                    self.execute_command("sudo pkill openvpn")
                     self.logger.info(f"Sequence 3: Stop the tun0")
                     self.logger.info(f"Sequence 4: Wait for 10 Seconds")
                     self.logger.info(f"Sequence 5: Restart Start Harp service")
@@ -217,6 +217,19 @@ class MQTTClient:
                     self.logger.info(f"Sequence 2: already tun0 opened, hence no need of any action.")
                 elif not self.check_tun0_available():
                     self.logger.info(f"Sequence 2: tun0 not present Executing Step 3")
+                    payload = json.dumps(
+                        {
+                            "HardWareID": int(self.get_hw_id()),
+                            "object": {
+                                "ParameterName": "Remote",
+                                "Value": "1111",
+                                "AlarmID": "8888"
+                            }
+                        }
+                    )
+                    result, mid = self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                     self.logger.info(f"Sequence 3: start the tun0")
                     self.logger.info(f"Sequence 4: Wait for 60 Seconds")
                     self.logger.info(f"Sequence 5: Restart Start Harp service")
