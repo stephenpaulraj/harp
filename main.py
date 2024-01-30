@@ -251,17 +251,20 @@ class MQTTClient:
             if access == 0:
                 self.logger.info(f"tun0 Status {self.check_tun0_available()}")
                 if self.check_tun0_available():
-                    result = subprocess.run('sudo pkill openvpn', shell=True, check=True)
+                    result = subprocess.run('sudo systemctl stop openvpn_start', shell=True, check=True)
                     stop_command_executed_successfully = (result.returncode == 0)
+                    time.sleep(5)
                     if stop_command_executed_successfully:
-                        self.logger.info("VPN Stop Command executed, Waiting 10Sec for the tun0 to go.")
-                        time.sleep(10)
-                        if not self.check_tun0_available():
-                            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
-                            harp_restart_success = (result.returncode == 0)
-                            if harp_restart_success:
-                                self.logger.info("Harp Service restarted, exiting current process..")
-                                self.exit_gracefully()
+                        if not self.is_service_running('openvpn_start'):
+                            self.logger.info("VPN Start Service is stopped, Waiting 5Sec for the tun0 to go.")
+                            time.sleep(5)
+                            if not self.check_tun0_available():
+                                self.logger.info("tun0 removed so : Restarting Harp Services..")
+                                result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                                harp_restart_success = (result.returncode == 0)
+                                if harp_restart_success:
+                                    self.logger.info("Harp Service restarted, exiting current process..")
+                                    self.exit_gracefully()
                 elif not self.check_tun0_available():
                     self.logger.info(f"No tun0 present, hence no need of any action.")
             elif access == 1:
