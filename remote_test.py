@@ -195,6 +195,8 @@ class MQTTClient:
         data = json.loads(m_decode)
         hardware_id = int(data.get("HardWareID", 0))
         access = int(data.get("object", {}).get("Access", 0))
+        self.logger.info(f"The From portal HW is: {hardware_id}")
+        self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
         if hardware_id == self.get_hw_id():
             self.logger.info(f"The From portal HW is: {access}")
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
