@@ -204,11 +204,17 @@ class MQTTClient:
             if access == 0:
                 self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
                 if self.check_tun0_available():
-                    self.execute_command("sudo pkill openvpn")
-                    self.logger.info(f"Sequence 3: Stop the tun0")
-                    self.logger.info(f"Sequence 4: Wait for 10 Seconds")
-                    self.logger.info(f"Sequence 5: Restart Start Harp service")
-                    self.logger.info(f"Sequence 6: Exit this program")
+                    result = subprocess.run('sudo pkill openvpn', shell=True, check=True)
+                    stop_command_executed_successfully = (result.returncode == 0)
+                    if stop_command_executed_successfully:
+                        self.logger.info("VPN Stop Command executed, Waiting 30Sec for the tun0 to go.")
+                        time.sleep(30)
+                        if not self.check_tun0_available():
+                            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                            harp_restart_success = (result.returncode == 0)
+                            if harp_restart_success:
+                                self.logger.info("Harp Service restarted, exiting current process..")
+                                sys.exit()
                 elif not self.check_tun0_available():
                     self.logger.info(f"Sequence 2: No tun0 present, hence no need of any action.")
             elif access == 1:
@@ -230,13 +236,25 @@ class MQTTClient:
                     result, mid = self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
-                    self.logger.info(f"Sequence 3: start the tun0")
-                    self.logger.info(f"Sequence 4: Wait for 60 Seconds")
-                    self.logger.info(f"Sequence 5: Restart Start Harp service")
-                    self.logger.info(f"Sequence 6: Exit this program")
+                    try:
+                        result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True, check=True)
+                        command_executed_successfully = (result.returncode == 0)
+                        if command_executed_successfully:
+                            self.logger.info("VPN Start Command executed, Waiting 60Sec for the tun0 to come up.")
+                            time.sleep(60)
+                            if self.check_tun0_available():
+                                self.logger.info("tun0 available : Restarting Harp Services..")
+                                result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                                harp_restart_success = (result.returncode == 0)
+                                if harp_restart_success:
+                                    self.logger.info("Harp Service restarted, exiting current process..")
+                                    sys.exit()
+                        else:
+                            self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
+                    except subprocess.CalledProcessError as e:
+                        self.logger.info(f"Error executing command: {e}")
             else:
                 self.logger.error("Invalid Access code received.")
-
         else:
             self.logger.info("Access value not found in the JSON.")
 
