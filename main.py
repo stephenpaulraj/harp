@@ -223,11 +223,11 @@ class MQTTClient:
                     else:
                         self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                    # result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                    # if result == mqtt.MQTT_ERR_SUCCESS:
-                    #     self.logger.info(f"Device_info Payload send! Message ID: {mid}")
-                    # else:
-                    #     self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
 
     def is_service_running(self, service_name):
         try:
