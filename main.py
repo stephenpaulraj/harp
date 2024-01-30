@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 
+import psutil
 from pyModbusTCP.client import ModbusClient
 from pyroute2 import IPDB
 import paho.mqtt.client as mqtt
@@ -256,11 +257,10 @@ class MQTTClient:
                 elif not self.check_tun0_available():
                     self.logger.info(f"No tun0 present, hence no need of any action.")
             elif access == 1:
-                if self.check_tun0_available():
-                    self.logger.info(f"Already tun0 opened, hence no need of any action.")
-                elif not self.check_tun0_available():
+                self.logger.info(f"tun0 Status {self.check_tun0_available()}")
+                if not self.check_tun0_available():
                     self.logger.info(f"tun0 not present, Sending Payload and starting tunnel..")
-                    payload = json.dumps(
+                    remote = json.dumps(
                         {
                             "HardWareID": int(self.get_hw_id()),
                             "object": {
@@ -270,38 +270,39 @@ class MQTTClient:
                             }
                         }
                     )
-                    result, mid = self.client.publish('iot-data3', payload=payload, qos=1, retain=True)
+                    result, mid = self.client.publish('iot-data3', payload=remote, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                         time.sleep(3)
-                    try:
-                        result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
-                                                check=True)
-                        command_executed_successfully = (result.returncode == 0)
-                        if command_executed_successfully:
-                            self.logger.info("VPN Start Command executed, Waiting 60Sec for the tun0 to come up.")
-                            time.sleep(60)
-                            if self.check_tun0_available():
-                                self.logger.info("tun0 available : Restarting Harp Services..")
-                                result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
-                                harp_restart_success = (result.returncode == 0)
-                                if harp_restart_success:
-                                    self.logger.info("Harp Service restarted, exiting current process..")
-                                    self.exit_gracefully()
-                        else:
-                            self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
-                    except subprocess.CalledProcessError as e:
-                        self.logger.info(f"Error executing command: {e}")
+                    # try:
+                    #     result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
+                    #                             check=True)
+                    #     command_executed_successfully = (result.returncode == 0)
+                    #     if command_executed_successfully:
+                    #         self.logger.info("VPN Start Command executed, Waiting 60Sec for the tun0 to come up.")
+                    #         time.sleep(60)
+                    #         if self.check_tun0_available():
+                    #             self.logger.info("tun0 available : Restarting Harp Services..")
+                    #             result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                    #             harp_restart_success = (result.returncode == 0)
+                    #             if harp_restart_success:
+                    #                 self.logger.info("Harp Service restarted, exiting current process..")
+                    #                 self.exit_gracefully()
+                    #     else:
+                    #         self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
+                    # except subprocess.CalledProcessError as e:
+                    #     self.logger.info(f"Error executing command: {e}")
             else:
-                self.logger.error("Invalid Access code received.")
+                self.logger.info(f"Already tun0 opened, hence no need of any action.")
         else:
             self.logger.info("Access value not found in the JSON.")
 
     def check_tun0_available(self):
         try:
-            subprocess.check_output(["ip", "a", "show", "tun0"])
-            return True
-        except subprocess.CalledProcessError:
+            interfaces = psutil.net_if_stats()
+            return 'tun0' in interfaces and interfaces['tun0'].isup
+        except Exception as e:
+            self.logger.error(f"Error checking tun0 availability: {e}")
             return False
 
     def process_operation(self, msg):
