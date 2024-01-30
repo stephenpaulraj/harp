@@ -281,7 +281,7 @@ class MQTTClient:
                             }
                         }
                     )
-                    result, mid = self.client.publish('iot-data3', payload=remote, qos=1, retain=True)
+                    result, mid = self.client.publish('remote', payload=remote, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                         time.sleep(3)
