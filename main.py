@@ -211,11 +211,11 @@ class MQTTClient:
                     # else:
                     #     self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
                     #
-                    # result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                    # if result == mqtt.MQTT_ERR_SUCCESS:
-                    #     self.logger.info(f"Device_info Payload send! Message ID: {mid}")
-                    # else:
-                    #     self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
+                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
                 else:
                     result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
