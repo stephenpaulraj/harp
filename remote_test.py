@@ -211,8 +211,8 @@ class MQTTClient:
 
     def check_tun0_available(self):
         try:
-            output = subprocess.check_output(["ip", "a", "show", "tun0"])
-            return b"tun0" in output
+            subprocess.check_output(["ip", "a", "show", "tun0"])
+            return True
         except subprocess.CalledProcessError:
             return False
 
