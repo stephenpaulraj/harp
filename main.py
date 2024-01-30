@@ -229,6 +229,14 @@ class MQTTClient:
                     else:
                         self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
 
+    def is_service_running(self, service_name):
+        try:
+            result = subprocess.run(['systemctl', 'is-active', service_name], check=True, capture_output=True,
+                                    text=True)
+            return result.stdout.strip() == 'active'
+        except subprocess.CalledProcessError:
+            return False
+
     def process_remote_access(self, msg):
         m_decode = str(msg.payload.decode("UTF-8", "ignore"))
         data = json.loads(m_decode)
@@ -275,20 +283,20 @@ class MQTTClient:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                         time.sleep(3)
                     try:
-                        command = "sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn"
-                        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        result = subprocess.run('sudo systemctl start openvpn_start', shell=True, check=True)
+                        start_command_executed_successfully = (result.returncode == 0)
                         time.sleep(5)
-                        if process.poll() is None:
-                            self.logger.info("VPN Start Command executed, Waiting 10Sec for the tun0 to come up.")
-                            time.sleep(10)
-                            self.logger.info("tun0 available : Restarting Harp Services..")
-                            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
-                            harp_restart_success = (result.returncode == 0)
-                            if harp_restart_success:
-                                self.logger.info("Harp Service restarted, exiting current process..")
-                                self.exit_gracefully()
-                        else:
-                            self.logger.info(f"OpenVPN Start Command failed with return code: {process.returncode}")
+                        if start_command_executed_successfully:
+                            if self.is_service_running('openvpn_start'):
+                                self.logger.info("VPN Start Service is running, Waiting 10Sec for the tun0 to come up.")
+                                time.sleep(10)
+                                if self.check_tun0_available():
+                                    self.logger.info("tun0 available : Restarting Harp Services..")
+                                    result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                                    harp_restart_success = (result.returncode == 0)
+                                    if harp_restart_success:
+                                        self.logger.info("Harp Service restarted, exiting current process..")
+                                        self.exit_gracefully()
                     except subprocess.CalledProcessError as e:
                         self.logger.info(f"Error executing command: {e}")
             elif self.check_tun0_available():
