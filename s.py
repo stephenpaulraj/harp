@@ -61,6 +61,9 @@
 # except KeyboardInterrupt:
 #     print("Interrupted. Disconnecting...")
 #     client.disconnect()
+import subprocess
+import time
+
 import psutil
 
 
@@ -75,4 +78,35 @@ def check_tun0_available():
         return False
 
 
-check_tun0_available()
+def is_service_running(service_name):
+    try:
+        result = subprocess.run(['systemctl', 'is-active', service_name], check=True, capture_output=True, text=True)
+        return result.stdout.strip() == 'active'
+    except subprocess.CalledProcessError:
+        return False
+
+
+def start_vpn():
+    result = subprocess.run('sudo systemctl start openvpn_start', shell=True, check=True)
+    start_command_executed_successfully = (result.returncode == 0)
+    time.sleep(5)
+    if start_command_executed_successfully:
+        if is_service_running('openvpn_start'):
+            print("VPN Start Service is running, Waiting 10Sec for the tun0 to come up.")
+            time.sleep(10)
+            print(check_tun0_available())
+
+
+def stop_vpn():
+    result = subprocess.run('sudo systemctl stop openvpn_start', shell=True, check=True)
+    start_command_executed_successfully = (result.returncode == 0)
+    time.sleep(5)
+    if start_command_executed_successfully:
+        if not is_service_running('openvpn_start'):
+            print("VPN stopped, Waiting 10Sec for the tun0 to come up.")
+            time.sleep(10)
+            print(check_tun0_available())
+
+
+start_vpn()
+#stop_vpn()
