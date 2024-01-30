@@ -202,9 +202,25 @@ class MQTTClient:
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
             self.logger.info(f"Session: {access}")
             if access == 0:
-                self.logger.info(f"Access code is {self.check_tun0_available()}")
+                self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
+                if self.check_tun0_available():
+                    self.logger.info(f"Sequence 2: tun0 present Executing Step 3")
+                    self.logger.info(f"Sequence 3: Stop the tun0")
+                    self.logger.info(f"Sequence 4: Wait for 10 Seconds")
+                    self.logger.info(f"Sequence 5: Restart Start Harp service")
+                    self.logger.info(f"Sequence 6: Exit this program")
+                elif not self.check_tun0_available():
+                    self.logger.info(f"Sequence 2: No tun0 present, hence no need of any action.")
             elif access == 1:
-                self.logger.info(f"Access code is {self.check_tun0_available()}")
+                self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
+                if self.check_tun0_available():
+                    self.logger.info(f"Sequence 2: already tun0 opened, hence no need of any action.")
+                elif not self.check_tun0_available():
+                    self.logger.info(f"Sequence 2: tun0 not present Executing Step 3")
+                    self.logger.info(f"Sequence 3: start the tun0")
+                    self.logger.info(f"Sequence 4: Wait for 60 Seconds")
+                    self.logger.info(f"Sequence 5: Restart Start Harp service")
+                    self.logger.info(f"Sequence 6: Exit this program")
             else:
                 self.logger.error("Invalid Access code received.")
 
