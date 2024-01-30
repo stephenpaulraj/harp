@@ -299,11 +299,10 @@ class MQTTClient:
             self.logger.info("Access value not found in the JSON.")
 
     def check_tun0_available(self):
-        try:
-            interfaces = psutil.net_if_stats()
-            return 'tun0' in interfaces
-        except Exception as e:
-            self.logger.error(f"Error checking tun0 availability: {e}")
+        interfaces = psutil.net_if_stats()
+        if 'tun0' in interfaces:
+            return True
+        else:
             return False
 
     def process_operation(self, msg):
