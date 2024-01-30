@@ -246,8 +246,8 @@ class MQTTClient:
                     result = subprocess.run('sudo pkill openvpn', shell=True, check=True)
                     stop_command_executed_successfully = (result.returncode == 0)
                     if stop_command_executed_successfully:
-                        self.logger.info("VPN Stop Command executed, Waiting 30Sec for the tun0 to go.")
-                        time.sleep(30)
+                        self.logger.info("VPN Stop Command executed, Waiting 10Sec for the tun0 to go.")
+                        time.sleep(10)
                         if not self.check_tun0_available():
                             result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
                             harp_restart_success = (result.returncode == 0)
@@ -274,33 +274,34 @@ class MQTTClient:
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                         time.sleep(3)
-                    # try:
-                    #     result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
-                    #                             check=True)
-                    #     command_executed_successfully = (result.returncode == 0)
-                    #     if command_executed_successfully:
-                    #         self.logger.info("VPN Start Command executed, Waiting 60Sec for the tun0 to come up.")
-                    #         time.sleep(60)
-                    #         if self.check_tun0_available():
-                    #             self.logger.info("tun0 available : Restarting Harp Services..")
-                    #             result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
-                    #             harp_restart_success = (result.returncode == 0)
-                    #             if harp_restart_success:
-                    #                 self.logger.info("Harp Service restarted, exiting current process..")
-                    #                 self.exit_gracefully()
-                    #     else:
-                    #         self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
-                    # except subprocess.CalledProcessError as e:
-                    #     self.logger.info(f"Error executing command: {e}")
-            else:
+                    try:
+                        result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
+                                                check=True)
+                        command_executed_successfully = (result.returncode == 0)
+                        if command_executed_successfully:
+                            self.logger.info("VPN Start Command executed, Waiting 10Sec for the tun0 to come up.")
+                            time.sleep(10)
+                            self.logger.info("tun0 available : Restarting Harp Services..")
+                            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+                            harp_restart_success = (result.returncode == 0)
+                            if harp_restart_success:
+                                self.logger.info("Harp Service restarted, exiting current process..")
+                                self.exit_gracefully()
+                        else:
+                            self.logger.info(f"OpenVPN Start Command failed with return code: {result.returncode}")
+                    except subprocess.CalledProcessError as e:
+                        self.logger.info(f"Error executing command: {e}")
+            elif self.check_tun0_available():
                 self.logger.info(f"Already tun0 opened, hence no need of any action.")
+            else:
+                self.logger.info(f"Problem during getting tun0 interface detail")
         else:
             self.logger.info("Access value not found in the JSON.")
 
     def check_tun0_available(self):
         try:
             interfaces = psutil.net_if_stats()
-            return 'tun0' in interfaces and interfaces['tun0'].isup
+            return 'tun0' in interfaces
         except Exception as e:
             self.logger.error(f"Error checking tun0 availability: {e}")
             return False
