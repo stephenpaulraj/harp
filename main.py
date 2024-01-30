@@ -275,8 +275,7 @@ class MQTTClient:
                         self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
                         time.sleep(3)
                     try:
-                        result = subprocess.run('sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn', shell=True,
-                                                check=True)
+                        result = subprocess.run('sudo openvpn /home/pi/vpn/gateway.ovpn', shell=True, check=True)
                         command_executed_successfully = (result.returncode == 0)
                         if command_executed_successfully:
                             self.logger.info("VPN Start Command executed, Waiting 10Sec for the tun0 to come up.")
