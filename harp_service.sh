@@ -22,20 +22,6 @@ if [ ! -d ${TEMP_FOLDER} ]; then
     mkdir ${TEMP_FOLDER}
 fi
 
-check_tun0() {
-    if ip link show tun0 &> /dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-if ! check_tun0; then
-    sudo openvpn --daemon --config /home/pi/vpn/gateway.ovpn
-    sleep 60
-    sudo supervisorctl restart tuxtunnel
-fi
-
 sudo mmcli -m 0 -e
 
 cd ${TEMP_FOLDER}
