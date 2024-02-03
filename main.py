@@ -239,7 +239,7 @@ class MQTTClient:
                     else:
                         self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
+                    result, mid = self.client.publish("iot-data3", payload=dev_payload, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Device_info Payload send! Message ID: {mid}")
                     else:
@@ -418,8 +418,8 @@ class MQTTClient:
             self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
             process_web_hw_status(msg, self.c, self.logger)
-        elif topic == "operation":
-            self.process_operation(msg)
+        # elif topic == "operation":
+        #     self.process_operation(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
