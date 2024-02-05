@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 import ssl
 import uuid
 from connectivity.con_status import check_internet_connection, get_active_network_interface
-
+import netifaces
 from log_helper import log_config
 from plc.Rough import test_function_ss
 
@@ -82,34 +82,45 @@ class MQTTClient:
         try:
             eth1_state = self.get_interface_state('eth1')
             self.logger.info(f"Debug: eth1_state before check: {eth1_state}")  # Debug print
-            if eth1_state != "UP":
+
+            if eth1_state == "UP":
+                eth1_ip = self.get_interface_ip('eth1')
+                self.logger.info(f"Debug: eth1_ip: {eth1_ip}")  # Debug print
+
+                if eth1_ip == '192.168.3.11':
+                    if self.ping_host('192.168.3.1'):
+                        if self.c is not None and self.c.is_open():
+                            if self.check_sample_json():
+                                self.logger.info("All (Device, PLC, Network) checklist passed.")
+                                return True
+                            else:
+                                self.logger.error("'Problem with Web-Alarm Json File.")
+                        else:
+                            self.logger.error("Modbus client is not connected.")
+                    else:
+                        self.logger.error("Couldn't ping '192.168.3.1'.")
+                else:
+                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+            else:
                 self.logger.error("eth1 interface not found or not UP.")
-                return False
 
-            eth1_ip = self.get_interface_ip('eth1')
-            self.logger.info(f"Debug: eth1_ip: {eth1_ip}")  # Debug print
-            if eth1_ip != '192.168.3.11':
-                self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
-                return False
+            return False
 
-            if self.c is None or not self.c.is_open():
-                self.logger.error("Modbus client is not connected.")
-                return False
-
-            if not self.ping_host('192.168.3.1'):
-                self.logger.error("Couldn't ping '192.168.3.1'.")
-                return False
-
-            if not self.check_sample_json():
-                self.logger.error("'Problem with Web-Alarm Json File.")
-                return False
-
-            self.logger.info("All (Device, PLC, Network) checklist passed.")
-            return True
         except Exception as e:
             self.logger.info(f"Debug: Exception occurred: {e}")  # Debug print
             self.logger.error(f"Error checking eth1 interface: {e}")
             return False
+
+    def get_interface_ip(self, interface_name):
+        try:
+            addresses = netifaces.ifaddresses(interface_name)
+            if netifaces.AF_INET in addresses:
+                return addresses[netifaces.AF_INET][0]['addr']
+            else:
+                return None
+        except Exception as e:
+            self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
+            return None
 
     def get_interface_state(self, interface_name):
         return socket.if_nametoindex(interface_name)
@@ -121,17 +132,7 @@ class MQTTClient:
         except subprocess.CalledProcessError:
             return False
 
-    def get_interface_ip(self, interface_name):
-        try:
-            import netifaces
-            addresses = netifaces.ifaddresses(interface_name)
-            if netifaces.AF_INET in addresses:
-                return addresses[netifaces.AF_INET][0]['addr']
-            else:
-                return None
-        except Exception as e:
-            self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
-            return None
+
 
     def check_sample_json(self):
         json_file_path = 'dummy_data/sample.json'
