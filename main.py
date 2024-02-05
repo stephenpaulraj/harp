@@ -80,8 +80,8 @@ class MQTTClient:
     def is_eth1_interface_present(self):
         with IPDB() as ipr:
             try:
-                eth1_interface = ipr.interfaces.eth1.operstate
-                if eth1_interface != "UP":
+                eth1_operstate = ipr.interfaces.eth1.operstate
+                if eth1_operstate != "UP":
                     self.logger.error("eth1 interface not found or not UP.")
                     return False
 
