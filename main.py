@@ -405,7 +405,7 @@ class MQTTClient:
         client.subscribe('network')
         client.subscribe('web-Alarms')
         client.subscribe('web-hardwarestatus')
-        client.subscribe('operation')
+        # client.subscribe('operation')
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
