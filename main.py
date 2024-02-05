@@ -78,35 +78,37 @@ class MQTTClient:
         sys.exit()
 
     def is_eth1_interface_present(self):
-        with IPDB() as ipr:
-            try:
-                eth1_state = ipr.interfaces.eth1.get('operstate', '')  # Use get method to ensure it returns a string
-                if eth1_state != "UP":
-                    self.logger.error("eth1 interface not found or not UP.")
-                    return False
-
-                eth1_ip = self.get_interface_ip('eth1')
-                if eth1_ip != '192.168.3.11':
-                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
-                    return False
-
-                if self.c is None or not self.c.is_open():
-                    self.logger.error("Modbus client is not connected.")
-                    return False
-
-                if not self.ping_host('192.168.3.1'):
-                    self.logger.error("Couldn't ping '192.168.3.1'.")
-                    return False
-
-                if not self.check_sample_json():
-                    self.logger.error("'Problem with Web-Alarm Json File.")
-                    return False
-
-                self.logger.info("All (Device, PLC, Network) checklist passed.")
-                return True
-            except Exception as e:
-                self.logger.error(f"Error checking eth1 interface: {e}")
+        ipr = IPDB()
+        try:
+            eth1_state = ipr.interfaces.eth1.operstate
+            if eth1_state != "UP":
+                self.logger.error("eth1 interface not found or not UP.")
                 return False
+
+            eth1_ip = self.get_interface_ip('eth1')
+            if eth1_ip != '192.168.3.11':
+                self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
+                return False
+
+            if self.c is None or not self.c.is_open():
+                self.logger.error("Modbus client is not connected.")
+                return False
+
+            if not self.ping_host('192.168.3.1'):
+                self.logger.error("Couldn't ping '192.168.3.1'.")
+                return False
+
+            if not self.check_sample_json():
+                self.logger.error("'Problem with Web-Alarm Json File.")
+                return False
+
+            self.logger.info("All (Device, PLC, Network) checklist passed.")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error checking eth1 interface: {e}")
+            return False
+        finally:
+            ipr.release()
 
     def ping_host(self, host):
         try:
