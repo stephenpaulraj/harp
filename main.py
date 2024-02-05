@@ -83,7 +83,7 @@ class MQTTClient:
             eth1_state = self.get_interface_state('eth1')
             self.logger.info(f"Debug: eth1_state before check: {eth1_state}")  # Debug print
 
-            if eth1_state == 1:  # Check if carrier is UP
+            if eth1_state is not None and eth1_state.isup:
                 eth1_ip = self.get_interface_ip('eth1')
                 self.logger.info(f"Debug: eth1_ip: {eth1_ip}")  # Debug print
 
@@ -124,9 +124,9 @@ class MQTTClient:
 
     def get_interface_state(self, interface_name):
         interfaces = psutil.net_if_stats()
-        carrier_state = interfaces.get(interface_name, {}).get('carrier', 0)
-        self.logger.info(f"Debug: Interface {interface_name} carrier state: {carrier_state}")  # Log carrier state
-        return carrier_state
+        eth1_state = interfaces.get(interface_name)
+        self.logger.info(f"Debug: Interface {interface_name} state: {eth1_state}")  # Log interface state
+        return eth1_state
 
     def ping_host(self, host):
         try:
