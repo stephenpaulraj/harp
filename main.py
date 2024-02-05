@@ -59,7 +59,13 @@ class MQTTClient:
         self.client.connect(self.broker_address, port=self.port, keepalive=60)
 
         self.client.loop_start()
-        self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+
+        try:
+            self.c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+        except Exception as e:
+            self.logger.error(f"Failed to create ModbusClient: {e}")
+            self.c = None
+
         self.periodic_update_thread = threading.Thread(target=self.periodic_update, daemon=True)
         self.periodic_update_thread.start()
 
@@ -75,13 +81,8 @@ class MQTTClient:
         with IPDB() as ipr:
             try:
                 eth1_interface = ipr.interfaces.eth1.operstate
-                if eth1_interface == "UP":
-                    eth1_interface = True
-                else:
-                    eth1_interface = False
-
-                if not eth1_interface:
-                    self.logger.error("eth1 interface not found.")
+                if eth1_interface != "UP":
+                    self.logger.error("eth1 interface not found or not UP.")
                     return False
 
                 eth1_ip = self.get_interface_ip('eth1')
@@ -89,14 +90,30 @@ class MQTTClient:
                     self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
                     return False
 
+                if self.c is None or not self.c.is_open():
+                    self.logger.error("Modbus client is not connected.")
+                    return False
+
+                if not self.ping_host('192.168.3.1'):
+                    self.logger.error("Couldn't ping '192.168.3.1'.")
+                    return False
+
                 if not self.check_sample_json():
                     self.logger.error("'Problem with Web-Alarm Json File.")
                     return False
+
                 self.logger.info("All (Device, PLC, Network) checklist passed.")
                 return True
             except Exception as e:
                 self.logger.error(f"Error checking eth1 interface: {e}")
                 return False
+
+    def ping_host(self, host):
+        try:
+            subprocess.run(['ping', '-c', '1', host], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return True
+        except subprocess.CalledProcessError:
+            return False
 
     def get_interface_ip(self, interface_name):
         try:
@@ -195,10 +212,6 @@ class MQTTClient:
                     }
                 )
 
-                device_info_obj = DeviceInformation()
-                device_info_obj.get_device_info()
-                dev_payload = device_info_obj.to_json()
-
                 if self.is_eth1_interface_present():
                     result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
@@ -211,12 +224,6 @@ class MQTTClient:
                         self.logger.info(f"PLC Payload send! Message ID: {mid}")
                     else:
                         self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
-
-                    result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
-                    if result == mqtt.MQTT_ERR_SUCCESS:
-                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
-                    else:
-                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
 
                     if self.check_tun0_available():
                         remote = json.dumps(
@@ -238,12 +245,6 @@ class MQTTClient:
                         self.logger.info(f"Connection Payload send! Message ID: {mid}")
                     else:
                         self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
-
-                    result, mid = self.client.publish("iot-data3", payload=dev_payload, qos=1, retain=True)
-                    if result == mqtt.MQTT_ERR_SUCCESS:
-                        self.logger.info(f"Device_info Payload send! Message ID: {mid}")
-                    else:
-                        self.logger.error(f"Error sending Device_info Payload! MQTT Error Code: {result}")
 
                     if self.check_tun0_available():
                         remote = json.dumps(
