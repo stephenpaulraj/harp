@@ -390,7 +390,7 @@ def test_function_ss(c):
 
                 Dict["object" + str(i)]['Description'] = "111"
                 Dict["object" + str(i)]['ParameterName'] = name[i]
-                Dict["object" + str(i)]['value'] = final[i]
+                Dict["object" + str(i)]['value'] = final[i-1]
                 Dict["object" + str(i)]['AlarmID'] = alarmID[i]
 
             except Exception as x:
