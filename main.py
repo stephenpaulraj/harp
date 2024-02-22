@@ -405,7 +405,7 @@ class MQTTClient:
         client.subscribe('network')
         client.subscribe('web-Alarms')
         client.subscribe('web-hardwarestatus')
-        client.subscribe('operation')
+        client.subscribe('ops')
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
@@ -418,8 +418,8 @@ class MQTTClient:
             self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
             process_web_hw_status(msg, self.c, self.logger)
-        # elif topic == "operation":
-        #     self.process_operation(msg)
+        elif topic == "ops":
+            self.process_operation(msg)
 
     def on_publish(self, client, userdata, mid):
         # self.logger.info("Message Published")
