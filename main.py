@@ -22,9 +22,9 @@ from system.SytemInfoClass import DeviceInformation
 
 class MQTTClient:
     def __init__(self, logger):
-        self.retry_interval = 20
+        self.retry_interval = 10
         self.retry_count = 0
-        self.max_retries = 50000
+        self.max_retries = 5
 
         self.last_checked_time = 0
         self.cached_result = None
@@ -435,9 +435,11 @@ class MQTTClient:
 
     def retry_connect(self):
         self.retry_count += 1
-        if self.retry_count <= self.max_retries:
+        if self.retry_count <= 5:
             self.logger.info(
-                f"Retrying connection in {self.retry_interval} seconds (Attempt {self.retry_count}/{self.max_retries})")
+                f"Retrying connection in {self.retry_interval} seconds "
+                f"(Attempt {self.retry_count}/5)"
+            )
             time.sleep(self.retry_interval)
             try:
                 self.client.reconnect()
@@ -445,8 +447,17 @@ class MQTTClient:
                 self.logger.error(f"Error during reconnection attempt: {e}")
                 self.retry_connect()  # Retry again on failure
         else:
-            self.logger.error("Maximum retries reached. Exiting...")
-            self.should_exit = True
+            self.logger.error("Maximum retries reached. Restarting the service...")
+            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
+            if result.returncode == 0:
+                self.logger.info("Harp Service restarted successfully.")
+                self.logger.info("Exiting gracefully...")
+                self.logger.info("Retried for 5 times, restarting Harp Services..")
+                self.exit_gracefully()
+            else:
+                self.logger.error("Failed to restart Harp Service.")
+                self.logger.error("Exiting gracefully...")
+                self.exit_gracefully()
 
 
 if __name__ == '__main__':
