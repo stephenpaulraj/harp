@@ -3,12 +3,9 @@ set -x
 
 HARP_FOLDER="/home/pi/harp"
 VENV_FOLDER="${HARP_FOLDER}/venv"
-GITHUB_REPO="https://github.com/stephenpaulraj/harp"
+GITHUB_REPO="https://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@github.com/stephenpaulraj/harp-prod.git"
 GITHUB_VERSION_FILE="https://raw.githubusercontent.com/stephenpaulraj/harp/main/version.txt"
 TEMP_FOLDER="/home/pi/temp"
-
-echo "nameserver 8.8.8.8" | sudo tee -a /etc/resolv.conf
-service networking restart
 
 sudo apt-get update
 sudo apt-get install -y python3-pip git python3-venv
@@ -21,8 +18,6 @@ fi
 if [ ! -d ${TEMP_FOLDER} ]; then
     mkdir ${TEMP_FOLDER}
 fi
-
-sudo mmcli -m 0 -e
 
 cd ${TEMP_FOLDER}
 git clone ${GITHUB_REPO}
