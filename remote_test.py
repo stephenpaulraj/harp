@@ -202,7 +202,7 @@ class MQTTClient:
             self.logger.info(f"The From Local HW is: {self.get_hw_id()}")
             self.logger.info(f"Session: {access}")
             if access == 0:
-                self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
+                self.logger.info(f"tun0 Status {self.check_tun0_available()}")
                 if self.check_tun0_available():
                     result = subprocess.run('sudo pkill openvpn', shell=True, check=True)
                     stop_command_executed_successfully = (result.returncode == 0)
@@ -216,11 +216,10 @@ class MQTTClient:
                                 self.logger.info("Harp Service restarted, exiting current process..")
                                 sys.exit()
                 elif not self.check_tun0_available():
-                    self.logger.info(f"Sequence 2: No tun0 present, hence no need of any action.")
+                    self.logger.info(f"No tun0 present, hence no need of any action.")
             elif access == 1:
-                self.logger.info(f"Sequence 1: tun0 Status {self.check_tun0_available()}")
                 if self.check_tun0_available():
-                    self.logger.info(f"Sequence 2: already tun0 opened, hence no need of any action.")
+                    self.logger.info(f"Already tun0 opened, hence no need of any action.")
                 elif not self.check_tun0_available():
                     self.logger.info(f"Sequence 2: tun0 not present Executing Step 3")
                     payload = json.dumps(
