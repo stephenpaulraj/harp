@@ -36,6 +36,10 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
             if data_type == 3:
                 float_value = [decode_ieee(f) for f in word_list_to_long(result)]
                 print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {float_value}")
+            elif data_type == 2:
+                # Extract individual bits from the result
+                bits = [bool(result[0] & (1 << i)) for i in range(16)]
+                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {bits}")
             else:
                 print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
         else:
