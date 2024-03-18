@@ -45,10 +45,7 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
-    addresses = []
-    data_types = []
-    descriptions = []
-    masks = []
+
     polled_data = {}  # Initialize dictionary to store polled data
 
     # Connect to Modbus TCP server
@@ -61,7 +58,10 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
             address = int(value["Address"]) - 1  # Subtract 1 from the address
             data_type = int(value["DataType"])
             description = value["Description"]
-            mask_value = int(value.get("Mask", 0))
+            mask_value = int(value.get("Mask"))
+            parmater = value["ParameterName"]
+            alarm_id = value["AlarmID"]
+
 
             # Example: Read holding register at address `address`
             result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
@@ -70,24 +70,28 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                 if data_type == 3:
                     float_value = [decode_ieee(f) for f in word_list_to_long(result)]
                     polled_data[key] = {
-                        "description": description,
-                        "data_type": DATA_TYPE_MAP[data_type],
-                        "value": float_value[0]
+                        "Description": "111",
+                        "ParameterName": f'"{parmater}"',
+                        "value": float_value[0],
+                        "AlarmID": f'"{alarm_id}"'
+
                     }
                 elif data_type == 2:
                     # Extract individual bits from the result
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
                     masked_value = apply_mask(bits, mask_value)  # Apply mask
                     polled_data[key] = {
-                        "description": description,
-                        "data_type": DATA_TYPE_MAP[data_type],
-                        "value": masked_value
+                        "Description": "111",
+                        "ParameterName": f'"{parmater}"',
+                        "value": masked_value,
+                        "AlarmID": f'"{alarm_id}"'
                     }
                 else:
                     polled_data[key] = {
-                        "description": description,
-                        "data_type": DATA_TYPE_MAP[data_type],
-                        "value": result[0]
+                        "Description": "111",
+                        "ParameterName": f'"{parmater}"',
+                        "value": result[0],
+                        "AlarmID": f'"{alarm_id}"'
                     }
             else:
                 polled_data[key] = {
