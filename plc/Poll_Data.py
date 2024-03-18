@@ -54,7 +54,7 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                 print(f"Error reading data from address {address + 1} ({description})")
         else:
             # Use previously polled data for boolean data types
-            print(f"Using previously polled data from address {address + 1} ({description})")
+            print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {polled_data[address]}")
 
     client.close()
 
@@ -64,4 +64,5 @@ if __name__ == "__main__":
     modbus_host = "192.168.3.1"
     modbus_port = 502
     read_json_and_poll(json_file_path, modbus_host, modbus_port)
+
 
