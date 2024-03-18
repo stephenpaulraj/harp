@@ -45,8 +45,11 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                 elif data_type == 2:
                     # Extract individual bits from the result
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
-                    print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {bits}")
-                    polled_data[address] = bits
+                    # Map bits according to Mask values
+                    mask = int(value["Mask"])
+                    mapped_bits = [bits[i] for i in range(16) if mask & (1 << i)]
+                    print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {mapped_bits}")
+                    polled_data[address] = mapped_bits
                 else:
                     print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
                     polled_data[address] = result[0]
@@ -64,5 +67,6 @@ if __name__ == "__main__":
     modbus_host = "192.168.3.1"
     modbus_port = 502
     read_json_and_poll(json_file_path, modbus_host, modbus_port)
+
 
 
