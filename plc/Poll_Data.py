@@ -57,9 +57,8 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
         if key.startswith("object"):
             address = int(value["Address"]) - 1  # Subtract 1 from the address
             data_type = int(value["DataType"])
-            description = value["Description"]
             mask_value = int(value.get("Mask"))
-            parmater = value["ParameterName"]
+            parameter = value["ParameterName"]
             alarm_id = value["AlarmID"]
 
 
@@ -71,9 +70,9 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     float_value = [decode_ieee(f) for f in word_list_to_long(result)]
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": parmater,
-                        "value": float_value[0],
-                        "AlarmID": {alarm_id}
+                        "ParameterName": parameter,
+                        "value": str(float_value[0]),
+                        "AlarmID": alarm_id
 
                     }
                 elif data_type == 2:
@@ -82,21 +81,21 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     masked_value = apply_mask(bits, mask_value)  # Apply mask
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": parmater,
-                        "value": masked_value,
+                        "ParameterName": parameter,
+                        "value": str(masked_value),
                         "AlarmID": alarm_id
                     }
                 else:
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": parmater,
-                        "value": result[0],
+                        "ParameterName": parameter,
+                        "value": str(result[0]),
                         "AlarmID": alarm_id
                     }
             else:
                 polled_data[key] = {
                     "Description": "111",
-                    "ParameterName": parmater,
+                    "ParameterName": parameter,
                     "value": "Error from PLC",
                     "AlarmID": alarm_id
                 }
