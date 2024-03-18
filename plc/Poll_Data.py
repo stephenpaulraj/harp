@@ -12,7 +12,8 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     data_types = []
     for key, value in data.items():
         if key.startswith("object"):
-            addresses.append(int(value["Address"]))  # Extract Modbus addresses
+            address = int(value["Address"]) - 1  # Subtract 1 from the address
+            addresses.append(address)  # Extract Modbus addresses
             data_types.append(int(value["DataType"]))  # Extract data types
 
     # Connect to Modbus TCP server
@@ -26,11 +27,11 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
         if result:
             if data_type == 3:
                 float_value = [decode_ieee(f) for f in word_list_to_long(result)]
-                print(f"Data from address {address}: {float_value}")
+                print(f"Data from address {address + 1}: {float_value}")
             else:
-                print(f"Data from address {address}: {result[0]}")
+                print(f"Data from address {address + 1}: {result[0]}")
         else:
-            print(f"Error reading data from address {address}")
+            print(f"Error reading data from address {address + 1}")
 
     client.close()
 
