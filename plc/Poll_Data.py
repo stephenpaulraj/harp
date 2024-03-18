@@ -71,9 +71,9 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     float_value = [decode_ieee(f) for f in word_list_to_long(result)]
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": f'"{parmater}"',
-                        "value": float_value[0],
-                        "AlarmID": f'"{alarm_id}"'
+                        "ParameterName": parmater,
+                        "value": str(float_value[0]),
+                        "AlarmID": {alarm_id}
 
                     }
                 elif data_type == 2:
@@ -83,21 +83,22 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": f'"{parmater}"',
-                        "value": masked_value,
-                        "AlarmID": f'"{alarm_id}"'
+                        "value": str(masked_value),
+                        "AlarmID": alarm_id
                     }
                 else:
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": f'"{parmater}"',
-                        "value": result[0],
-                        "AlarmID": f'"{alarm_id}"'
+                        "ParameterName": parmater,
+                        "value": str(result[0]),
+                        "AlarmID": alarm_id
                     }
             else:
                 polled_data[key] = {
-                    "description": description,
-                    "data_type": DATA_TYPE_MAP[data_type],
-                    "value": "Error"
+                    "Description": "111",
+                    "ParameterName": parmater,
+                    "value": "Error from PLC",
+                    "AlarmID": alarm_id
                 }
 
     client.close()
