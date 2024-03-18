@@ -2,6 +2,12 @@ from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
 import json
 
+# Dictionary to map raw data types to human-readable equivalents
+DATA_TYPE_MAP = {
+    1: "integer",
+    2: "boolean",
+    3: "float"
+}
 
 def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     # Read the JSON file
@@ -29,9 +35,9 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
         if result:
             if data_type == 3:
                 float_value = [decode_ieee(f) for f in word_list_to_long(result)]
-                print(f"Data from address {address + 1} ({description}) - DataType: {data_type}: {float_value}")
+                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {float_value}")
             else:
-                print(f"Data from address {address + 1} ({description}) - DataType: {data_type}: {result[0]}")
+                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
         else:
             print(f"Error reading data from address {address + 1} ({description})")
 
