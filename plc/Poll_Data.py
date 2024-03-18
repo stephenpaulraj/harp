@@ -45,7 +45,7 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
-
+    hardware_id = data.get("HardwareID")
     polled_data = {}  # Initialize dictionary to store polled data
 
     # Connect to Modbus TCP server
@@ -101,10 +101,11 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                 }
 
     client.close()
-
-    # Convert polled_data dictionary to JSON format
-    json_output = json.dumps(polled_data, indent=4)
+    output_json = {"HardwareID": hardware_id, **polled_data}
+    # Convert the output JSON dictionary to JSON format
+    json_output = json.dumps(output_json, indent=4)
     print(json_output)
+
 
 if __name__ == "__main__":
     json_file_path = "../dummy_data/sample.json"
