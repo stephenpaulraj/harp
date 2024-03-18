@@ -1,6 +1,6 @@
+import json
 from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
-import json
 
 # Dictionary to map raw data types to human-readable equivalents
 DATA_TYPE_MAP = {
@@ -49,37 +49,58 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     data_types = []
     descriptions = []
     masks = []
-    for key, value in data.items():
-        if key.startswith("object"):
-            address = int(value["Address"]) - 1  # Subtract 1 from the address
-            addresses.append(address)  # Extract Modbus addresses
-            data_types.append(int(value["DataType"]))  # Extract data types
-            descriptions.append(value["Description"])  # Extract descriptions
-            masks.append(int(value.get("Mask")))
+    polled_data = {}  # Initialize dictionary to store polled data
 
     # Connect to Modbus TCP server
     client = ModbusClient(host=modbus_host, port=modbus_port)
     client.open()
 
     # Poll data from Modbus
-    for address, data_type, description, mask_value in zip(addresses, data_types, descriptions, masks):
-        # Example: Read holding register at address `address`
-        result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
-        if result:
-            if data_type == 3:
-                float_value = [decode_ieee(f) for f in word_list_to_long(result)]
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {float_value[0]}")
-            elif data_type == 2:
-                # Extract individual bits from the result
-                bits = [bool(result[0] & (1 << i)) for i in range(16)]
-                masked_value = apply_mask(bits, mask_value)  # Apply mask
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {masked_value}")
+    for key, value in data.items():
+        if key.startswith("object"):
+            address = int(value["Address"]) - 1  # Subtract 1 from the address
+            data_type = int(value["DataType"])
+            description = value["Description"]
+            mask_value = int(value.get("Mask", 0))
+
+            # Example: Read holding register at address `address`
+            result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
+
+            if result:
+                if data_type == 3:
+                    float_value = [decode_ieee(f) for f in word_list_to_long(result)]
+                    polled_data[key] = {
+                        "description": description,
+                        "data_type": DATA_TYPE_MAP[data_type],
+                        "value": float_value[0]
+                    }
+                elif data_type == 2:
+                    # Extract individual bits from the result
+                    bits = [bool(result[0] & (1 << i)) for i in range(16)]
+                    masked_value = apply_mask(bits, mask_value)  # Apply mask
+                    polled_data[key] = {
+                        "description": description,
+                        "data_type": DATA_TYPE_MAP[data_type],
+                        "value": masked_value
+                    }
+                else:
+                    polled_data[key] = {
+                        "description": description,
+                        "data_type": DATA_TYPE_MAP[data_type],
+                        "value": result[0]
+                    }
             else:
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
-        else:
-            print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: Error")
+                polled_data[key] = {
+                    "description": description,
+                    "data_type": DATA_TYPE_MAP[data_type],
+                    "value": "Error"
+                }
 
     client.close()
+
+    # Convert polled_data dictionary to JSON format
+    json_output = json.dumps(polled_data, indent=4)
+    print(json_output)
 
 if __name__ == "__main__":
     json_file_path = "../dummy_data/sample.json"
