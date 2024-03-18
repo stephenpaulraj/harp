@@ -72,7 +72,7 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": parmater,
-                        "value": str(float_value[0]),
+                        "value": float_value[0],
                         "AlarmID": {alarm_id}
 
                     }
@@ -82,15 +82,15 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     masked_value = apply_mask(bits, mask_value)  # Apply mask
                     polled_data[key] = {
                         "Description": "111",
-                        "ParameterName": f'"{parmater}"',
-                        "value": str(masked_value),
+                        "ParameterName": parmater,
+                        "value": masked_value,
                         "AlarmID": alarm_id
                     }
                 else:
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": parmater,
-                        "value": str(result[0]),
+                        "value": result[0],
                         "AlarmID": alarm_id
                     }
             else:
