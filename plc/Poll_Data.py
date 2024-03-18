@@ -1,14 +1,3 @@
-from pyModbusTCP.client import ModbusClient
-from pyModbusTCP.utils import word_list_to_long, decode_ieee
-import json
-
-# Dictionary to map raw data types to human-readable equivalents
-DATA_TYPE_MAP = {
-    1: "integer",
-    2: "boolean",
-    3: "float"
-}
-
 def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     # Read the JSON file
     with open(json_file_path, 'r') as file:
@@ -28,22 +17,33 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     client = ModbusClient(host=modbus_host, port=modbus_port)
     client.open()
 
+    # Create a dictionary to store polled data
+    polled_data = {}
+
     # Poll data from Modbus
     for address, data_type, description in zip(addresses, data_types, descriptions):
-        # Example: Read holding register at address `address`
-        result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
-        if result:
-            if data_type == 3:
-                float_value = [decode_ieee(f) for f in word_list_to_long(result)]
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {float_value}")
-            elif data_type == 2:
-                # Extract individual bits from the result
-                bits = [bool(result[0] & (1 << i)) for i in range(16)]
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {bits}")
+        # Poll data only if not already polled for boolean data types (DataType == 2)
+        if data_type != 2 or address not in polled_data:
+            # Example: Read holding register at address `address`
+            result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
+            if result:
+                if data_type == 3:
+                    float_value = [decode_ieee(f) for f in word_list_to_long(result)]
+                    print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {float_value}")
+                    polled_data[address] = float_value
+                elif data_type == 2:
+                    # Extract individual bits from the result
+                    bits = [bool(result[0] & (1 << i)) for i in range(16)]
+                    print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {bits}")
+                    polled_data[address] = bits
+                else:
+                    print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
+                    polled_data[address] = result[0]
             else:
-                print(f"Data from address {address + 1} ({description}) - DataType: {DATA_TYPE_MAP[data_type]}: {result[0]}")
+                print(f"Error reading data from address {address + 1} ({description})")
         else:
-            print(f"Error reading data from address {address + 1} ({description})")
+            # Use previously polled data for boolean data types
+            print(f"Using previously polled data from address {address + 1} ({description})")
 
     client.close()
 
