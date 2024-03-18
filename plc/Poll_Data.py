@@ -1,3 +1,14 @@
+from pyModbusTCP.client import ModbusClient
+from pyModbusTCP.utils import word_list_to_long, decode_ieee
+import json
+
+# Dictionary to map raw data types to human-readable equivalents
+DATA_TYPE_MAP = {
+    1: "integer",
+    2: "boolean",
+    3: "float"
+}
+
 def read_json_and_poll(json_file_path, modbus_host, modbus_port):
     # Read the JSON file
     with open(json_file_path, 'r') as file:
@@ -53,3 +64,4 @@ if __name__ == "__main__":
     modbus_host = "192.168.3.1"
     modbus_port = 502
     read_json_and_poll(json_file_path, modbus_host, modbus_port)
+
