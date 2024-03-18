@@ -2,15 +2,8 @@ import json
 from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
 
-# Dictionary to map raw data types to human-readable equivalents
-DATA_TYPE_MAP = {
-    1: "integer",
-    2: "boolean",
-    3: "float"
-}
 
 def apply_mask(bits, mask_value):
-    # Define a dictionary to map mask values to index
     mask_mapping = {
         256: 0,
         512: 1,
@@ -30,39 +23,32 @@ def apply_mask(bits, mask_value):
         128: 15
     }
 
-    # Check if mask_value exists in the mapping
     if mask_value not in mask_mapping:
         return None
 
-    # Retrieve the index corresponding to the mask value
     index = mask_mapping[mask_value]
 
-    # Return the value from the bits list at the specified index
     return bits[index]
 
+
 def read_json_and_poll(json_file_path, modbus_host, modbus_port):
-    # Read the JSON file
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
     hardware_id = data.get("HardwareID")
-    polled_data = {}  # Initialize dictionary to store polled data
+    polled_data = {}
 
-    # Connect to Modbus TCP server
     client = ModbusClient(host=modbus_host, port=modbus_port)
     client.open()
 
-    # Poll data from Modbus
     for key, value in data.items():
         if key.startswith("object"):
-            address = int(value["Address"]) - 1  # Subtract 1 from the address
+            address = int(value["Address"]) - 1
             data_type = int(value["DataType"])
             mask_value = int(value.get("Mask"))
             parameter = value["ParameterName"]
             alarm_id = value["AlarmID"]
 
-
-            # Example: Read holding register at address `address`
             result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
 
             if result:
@@ -73,12 +59,10 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                         "ParameterName": parameter,
                         "value": str(float_value[0]),
                         "AlarmID": alarm_id
-
                     }
                 elif data_type == 2:
-                    # Extract individual bits from the result
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
-                    masked_value = apply_mask(bits, mask_value)  # Apply mask
+                    masked_value = apply_mask(bits, mask_value)
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": parameter,
@@ -102,7 +86,6 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
 
     client.close()
     output_json = {"HardwareID": hardware_id, **polled_data}
-    # Convert the output JSON dictionary to JSON format
     json_output = json.dumps(output_json, indent=4)
     print(json_output)
 
