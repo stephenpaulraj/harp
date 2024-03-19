@@ -31,7 +31,7 @@ def apply_mask(bits, mask_value):
 
 
 def read_json_and_poll(c):
-    json_file_path = "../dummy_data/sample.json"
+    json_file_path = "dummy_data/sample.json"
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
