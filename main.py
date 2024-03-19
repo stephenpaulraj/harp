@@ -15,6 +15,7 @@ from connectivity.con_status import check_internet_connection, get_active_networ
 
 from log_helper import log_config
 from plc.Rough import test_function_ss
+from plc.Poll_Data import read_json_and_poll
 
 from plc.Write_rough import process_web_hw_status
 from system.SytemInfoClass import DeviceInformation
@@ -206,7 +207,7 @@ class MQTTClient:
                     else:
                         self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                    result, mid = self.client.publish("iot-data3", payload=test_function_ss(self.c), qos=1, retain=True)
+                    result, mid = self.client.publish("iot-data3", payload=read_json_and_poll(self.c), qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"PLC Payload send! Message ID: {mid}")
                     else:

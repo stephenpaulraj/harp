@@ -1,5 +1,4 @@
 import json
-from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.utils import word_list_to_long, decode_ieee
 
 
@@ -28,18 +27,16 @@ def apply_mask(bits, mask_value):
 
     index = mask_mapping[mask_value]
 
-    return bits[index]
+    return int(bits[index])
 
 
-def read_json_and_poll(json_file_path, modbus_host, modbus_port):
+def read_json_and_poll(c):
+    json_file_path = "../dummy_data/sample.json"
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
     hardware_id = data.get("HardwareID")
     polled_data = {}
-
-    client = ModbusClient(host=modbus_host, port=modbus_port)
-    client.open()
 
     for key, value in data.items():
         if key.startswith("object"):
@@ -49,7 +46,7 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
             parameter = value["ParameterName"]
             alarm_id = value["AlarmID"]
 
-            result = client.read_holding_registers(address, 2 if data_type == 3 else 1)
+            result = c.read_holding_registers(address, 2 if data_type == 3 else 1)
 
             if result:
                 if data_type == 3:
@@ -83,15 +80,8 @@ def read_json_and_poll(json_file_path, modbus_host, modbus_port):
                     "value": "Error from PLC",
                     "AlarmID": alarm_id
                 }
-
-    client.close()
     output_json = {"HardwareID": hardware_id, **polled_data}
     json_output = json.dumps(output_json, indent=4)
-    print(json_output)
+    return json_output
 
 
-if __name__ == "__main__":
-    json_file_path = "../dummy_data/sample.json"
-    modbus_host = "192.168.3.1"
-    modbus_port = 502
-    read_json_and_poll(json_file_path, modbus_host, modbus_port)
