@@ -11,14 +11,10 @@ from pyroute2 import IPDB
 import paho.mqtt.client as mqtt
 import ssl
 import uuid
-from connectivity.con_status import check_internet_connection, get_active_network_interface
-
 from log_helper import log_config
-from plc.Rough import test_function_ss
 from plc.Poll_Data import read_json_and_poll
 
 from plc.Write_rough import process_web_hw_status
-from system.SytemInfoClass import DeviceInformation
 
 
 class MQTTClient:

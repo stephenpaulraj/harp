@@ -81,7 +81,6 @@ def read_json_and_poll(c):
                     "AlarmID": alarm_id
                 }
 
-    c.close()
     output_json = {"HardwareID": hardware_id, **polled_data}
     json_output = json.dumps(output_json, indent=4)
     return json_output
