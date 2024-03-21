@@ -414,7 +414,8 @@ class MQTTClient:
         elif topic == "remote-access":
             self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
-            process_web_hw_status(msg, self.c, self.logger)
+            #process_web_hw_status(msg, self.c, self.logger)
+            pass
         elif topic == "ops":
             self.process_operation(msg)
 
