@@ -63,7 +63,6 @@ def read_json_and_poll(c):
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
                     print(f'Address : {address}, Parameter : {parameter}, Actual Value : {bits}')
                     masked_value = apply_mask(bits, mask_value)
-                    print(f'Address : {address}, Parameter : {parameter}, Mask Value : {masked_value}')
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": parameter,
@@ -87,6 +86,7 @@ def read_json_and_poll(c):
 
     output_json = {"HardwareID": hardware_id, **polled_data}
     json_output = json.dumps(output_json, indent=4)
+    print(f'{json_output}')
     # return json_output
 
 
