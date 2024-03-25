@@ -1,6 +1,8 @@
 import json
-from pyModbusTCP.utils import word_list_to_long, decode_ieee
+import time
 
+from pyModbusTCP.utils import word_list_to_long, decode_ieee
+from pyModbusTCP.client import ModbusClient
 
 def apply_mask(bits, mask_value):
     mask_mapping = {
@@ -84,6 +86,13 @@ def read_json_and_poll(c):
 
     output_json = {"HardwareID": hardware_id, **polled_data}
     json_output = json.dumps(output_json, indent=4)
-    return json_output
+    # return json_output
+
+
+if __name__ == "__main__":
+    c = ModbusClient(host='192.168.3.1', port=502, auto_open=True, debug=False)
+    while True:
+        read_json_and_poll(c)
+        time.sleep(10)
 
 
