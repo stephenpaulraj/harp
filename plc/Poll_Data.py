@@ -59,6 +59,7 @@ def read_json_and_poll(c):
                     }
                 elif data_type == 2:
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
+                    print(f'Address : {address}, Parameter : {parameter}, Value : {bits}')
                     masked_value = apply_mask(bits, mask_value)
                     polled_data[key] = {
                         "Description": "111",
