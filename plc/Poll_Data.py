@@ -33,7 +33,7 @@ def apply_mask(bits, mask_value):
 
 
 def read_json_and_poll(c):
-    json_file_path = "dummy_data/sample.json"
+    json_file_path = "../dummy_data/sample.json"
     with open(json_file_path, 'r') as file:
         data = json.load(file)
 
@@ -61,8 +61,9 @@ def read_json_and_poll(c):
                     }
                 elif data_type == 2:
                     bits = [bool(result[0] & (1 << i)) for i in range(16)]
-                    print(f'Address : {address}, Parameter : {parameter}, Value : {bits}')
+                    print(f'Address : {address}, Parameter : {parameter}, Actual Value : {bits}')
                     masked_value = apply_mask(bits, mask_value)
+                    print(f'Address : {address}, Parameter : {parameter}, Mask Value : {masked_value}')
                     polled_data[key] = {
                         "Description": "111",
                         "ParameterName": parameter,
