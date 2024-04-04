@@ -4,7 +4,7 @@ import subprocess
 import sys
 import threading
 import time
-
+import serial
 import psutil
 from pyModbusTCP.client import ModbusClient
 from pyroute2 import IPDB
@@ -203,7 +203,8 @@ class MQTTClient:
                     else:
                         self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
 
-                    result, mid = self.client.publish("iot-data3", payload=read_json_and_poll(self.c), qos=1, retain=True)
+                    result, mid = self.client.publish("iot-data3", payload=read_json_and_poll(self.c), qos=1,
+                                                      retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"PLC Payload send! Message ID: {mid}")
                     else:
@@ -414,7 +415,7 @@ class MQTTClient:
         elif topic == "remote-access":
             self.process_remote_access(msg)
         elif topic == "web-hardwarestatus":
-            #process_web_hw_status(msg, self.c, self.logger)
+            # process_web_hw_status(msg, self.c, self.logger)
             pass
         elif topic == "ops":
             self.process_operation(msg)
@@ -445,16 +446,20 @@ class MQTTClient:
                 self.logger.error(f"Error during reconnection attempt: {e}")
                 self.retry_connect()  # Retry again on failure
         else:
-            self.logger.error("Maximum retries reached. Restarting the service...")
-            result = subprocess.run('sudo systemctl restart harp', shell=True, check=True)
-            if result.returncode == 0:
-                self.logger.info("Harp Service restarted successfully.")
-                self.logger.info("Exiting gracefully...")
-                self.logger.info("Retried for 5 times, restarting Harp Services..")
-                self.exit_gracefully()
-            else:
-                self.logger.error("Failed to restart Harp Service.")
-                self.logger.error("Exiting gracefully...")
+            self.logger.error("Maximum retries reached. Restarting the Modem and Device...")
+            serial_port = '/dev/ttyUSB2'
+            baud_rate = 115200
+            ser = serial.Serial(serial_port, baud_rate, timeout=1)
+            try:
+                ser.write(b'AT+CPOF\r\n')
+                time.sleep(1)
+                response = ser.read_all().decode('utf-8')
+                self.logger.info("Response from modem:")
+                self.logger.info(response)
+
+            finally:
+                ser.close()
+                subprocess.run('sudo reboot', shell=True, check=True)
                 self.exit_gracefully()
 
 
