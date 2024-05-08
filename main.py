@@ -72,27 +72,26 @@ class MQTTClient:
         with IPDB() as ipr:
             try:
                 eth1_interface = ipr.interfaces.eth1.operstate
-                if eth1_interface == "UP":
-                    eth1_interface = True
-                else:
-                    eth1_interface = False
-
-                if not eth1_interface:
-                    self.logger.error("eth1 interface not found.")
-                    return False
+                eth0_interface = ipr.interfaces.eth0.operstate
 
                 eth1_ip = self.get_interface_ip('eth1')
-                if eth1_ip != '192.168.3.11':
-                    self.logger.error(f"eth1 IP is not '192.168.3.11', found: {eth1_ip}")
-                    return False
+                eth0_ip = self.get_interface_ip('eth0')
 
+                if eth1_interface == "UP" and eth1_ip == '192.168.3.11':
+                    self.logger.info("eth1 IP is '192.168.3.11'.")
+                    return True
+                elif eth0_interface == "UP" and eth0_ip == '192.168.3.11':
+                    self.logger.info("eth0 IP is '192.168.3.11'.")
+                    return True
+
+                self.logger.error("Neither eth0 nor eth1 interface found with IP '192.168.3.11'.")
                 if not self.check_sample_json():
-                    self.logger.error("'Problem with Web-Alarm Json File.")
+                    self.logger.error("Problem with Web-Alarm Json File.")
                     return False
                 self.logger.info("All (Device, PLC, Network) checklist passed.")
                 return True
             except Exception as e:
-                self.logger.error(f"Error checking eth1 interface: {e}")
+                self.logger.error(f"Error checking eth interfaces: {e}")
                 return False
 
     def get_interface_ip(self, interface_name):
