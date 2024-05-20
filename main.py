@@ -89,7 +89,7 @@ class MQTTClient:
                     self.logger.info("All (Device, PLC, Network) checklist passed.")
                     return False
             except Exception as e:
-                self.logger.error(f"Error checking eth interfaces: {e}")
+                self.logger.error(f"Error checking eth interfaces : {e}")
                 return False
 
     def get_interface_ip(self, interface_name):
