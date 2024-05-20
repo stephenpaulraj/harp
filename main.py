@@ -180,6 +180,7 @@ class MQTTClient:
         while not self.should_exit:
             time.sleep(10)
             self.logger.debug(f"Connection Flag Status : {self.connection_flag}")
+            self.logger.debug(f"Interface Flag Status : {self.is_eth_interface_present()}")
             if self.connection_flag:
                 if self.is_eth_interface_present():
                     payload = json.dumps(
