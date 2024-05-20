@@ -75,11 +75,11 @@ class MQTTClient:
                 eth0_ip = self.get_interface_ip('eth0') if eth0_interface and eth0_interface.operstate == 'UP' else None
                 eth1_ip = self.get_interface_ip('eth1') if eth1_interface and eth1_interface.operstate == 'UP' else None
 
-                if eth0_ip == '192.168.3.11':
-                    self.logger.info("eth0 IP is '192.168.3.11'.")
-                    return True
-                elif eth1_ip == '192.168.3.11':
-                    self.logger.info("eth1 IP is '192.168.3.11'.")
+                eth0_ip_present = eth0_ip == '192.168.3.11'
+                eth1_ip_present = eth1_ip == '192.168.3.11'
+
+                if eth0_ip_present or eth1_ip_present:
+                    self.logger.info(f"{'eth0' if eth0_ip_present else 'eth1'} IP is '192.168.3.11'.")
                     return True
                 else:
                     self.logger.error("Neither eth0 nor eth1 interface found with IP '192.168.3.11'.")
@@ -87,7 +87,7 @@ class MQTTClient:
                         self.logger.error("Problem with Web-Alarm Json File.")
                         return False
                     self.logger.info("All (Device, PLC, Network) checklist passed.")
-                    return True
+                    return False
             except Exception as e:
                 self.logger.error(f"Error checking eth interfaces: {e}")
                 return False
