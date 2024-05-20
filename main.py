@@ -72,8 +72,8 @@ class MQTTClient:
                 eth0_interface = ipr.interfaces.get('eth0', None)
                 eth1_interface = ipr.interfaces.get('eth1', None)
 
-                eth0_ip = self.get_interface_ip('eth0') if eth0_interface else None
-                eth1_ip = self.get_interface_ip('eth1') if eth1_interface else None
+                eth0_ip = self.get_interface_ip('eth0') if eth0_interface and eth0_interface.operstate == 'UP' else None
+                eth1_ip = self.get_interface_ip('eth1') if eth1_interface and eth1_interface.operstate == 'UP' else None
 
                 if eth0_ip == '192.168.3.11':
                     self.logger.info("eth0 IP is '192.168.3.11'.")
@@ -181,22 +181,78 @@ class MQTTClient:
             time.sleep(10)
             self.logger.debug(f"Connection Flag Status : {self.connection_flag}")
             if self.connection_flag:
-                payload = json.dumps(
-                    {
-                        "HardWareID": self.get_hw_id(),
-                        "object": {
-                            "ParameterName": "Connection",
-                            "Value": "1111",
-                            "AlarmID": "9999"
+                if self.is_eth_interface_present():
+                    payload = json.dumps(
+                        {
+                            "HardWareID": self.get_hw_id(),
+                            "object": {
+                                "ParameterName": "Connection",
+                                "Value": "1111",
+                                "AlarmID": "9999"
+                            }
                         }
-                    }
-                )
+                    )
 
-                result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
-                if result == mqtt.MQTT_ERR_SUCCESS:
-                    self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+
+                    result, mid = self.client.publish("iot-data3", payload=read_json_and_poll(self.c), qos=1,
+                                                      retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"PLC Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
+
+                    if self.check_tun0_available():
+                        remote = json.dumps(
+                            {
+                                "HardWareID": int(self.get_hw_id()),
+                                "object": {
+                                    "ParameterName": "Remote",
+                                    "Value": "1111",
+                                    "AlarmID": "8888"
+                                }
+                            }
+                        )
+                        result, mid = self.client.publish('iot-data3', payload=remote, qos=1, retain=True)
+                        if result == mqtt.MQTT_ERR_SUCCESS:
+                            self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
+
                 else:
-                    self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+                    payload = json.dumps(
+                        {
+                            "HardWareID": self.get_hw_id(),
+                            "object": {
+                                "ParameterName": "Connection",
+                                "Value": "1111",
+                                "AlarmID": "9999"
+                            }
+                        }
+                    )
+
+                    result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                    if result == mqtt.MQTT_ERR_SUCCESS:
+                        self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                    else:
+                        self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
+
+                    if self.check_tun0_available():
+                        remote = json.dumps(
+                            {
+                                "HardWareID": int(self.get_hw_id()),
+                                "object": {
+                                    "ParameterName": "Remote",
+                                    "Value": "1111",
+                                    "AlarmID": "8888"
+                                }
+                            }
+                        )
+                        result, mid = self.client.publish('iot-data3', payload=remote, qos=1, retain=True)
+                        if result == mqtt.MQTT_ERR_SUCCESS:
+                            self.logger.info(f"Remote Access - Status Payload send! Message ID: {mid}")
             #
             #     # device_info_obj = DeviceInformation()
             #     # device_info_obj.get_device_info()
@@ -209,12 +265,7 @@ class MQTTClient:
             #         else:
             #             self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
             #
-            #         result, mid = self.client.publish("iot-data3", payload=read_json_and_poll(self.c), qos=1,
-            #                                           retain=True)
-            #         if result == mqtt.MQTT_ERR_SUCCESS:
-            #             self.logger.info(f"PLC Payload send! Message ID: {mid}")
-            #         else:
-            #             self.logger.error(f"Error sending PLC Payload! MQTT Error Code: {result}")
+
             #
             #         # result, mid = self.client.publish("dev-data", payload=dev_payload, qos=1, retain=True)
             #         # if result == mqtt.MQTT_ERR_SUCCESS:
