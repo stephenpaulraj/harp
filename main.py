@@ -14,8 +14,6 @@ import uuid
 from log_helper import log_config
 from plc.Poll_Data import read_json_and_poll
 
-from plc.Write_rough import process_web_hw_status
-
 
 class MQTTClient:
     def __init__(self, logger):
@@ -198,7 +196,7 @@ class MQTTClient:
                 # device_info_obj.get_device_info()
                 # dev_payload = device_info_obj.to_json()
 
-                if self.is_eth1_interface_present():
+                if self.is_eth_interface_present():
                     result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
                     if result == mqtt.MQTT_ERR_SUCCESS:
                         self.logger.info(f"Connection Payload send! Message ID: {mid}")
