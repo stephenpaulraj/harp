@@ -93,18 +93,16 @@ class MQTTClient:
                 return False
 
     def get_interface_ip(self, interface_name):
-        try:
-            with IPDB() as ipr:
-                iface = ipr.interfaces.get(interface_name)
-                if iface:
-                    addresses = iface.ipaddr
-                    for address in addresses:
-                        if address['prefixlen'] == 24:  # Assuming /24 subnet
-                            return address['address']
-            return None
-        except Exception as e:
-            self.logger.error(f"Error getting IP for {interface_name}: {e}")
-            return None
+        with IPDB() as ipr:
+            try:
+                interface = ipr.interfaces.get(interface_name, None)
+                if interface and interface.operstate == 'UP':
+                    return interface.ipaddr[0]
+                else:
+                    return None
+            except Exception as e:
+                self.logger.error(f"Error getting IP for {interface_name}: {e}")
+                return None
 
     def check_sample_json(self):
         json_file_path = 'dummy_data/sample.json'
