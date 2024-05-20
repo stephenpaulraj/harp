@@ -180,17 +180,23 @@ class MQTTClient:
         while not self.should_exit:
             time.sleep(10)
             self.logger.debug(f"Connection Flag Status : {self.connection_flag}")
-            # if self.connection_flag:
-            #     payload = json.dumps(
-            #         {
-            #             "HardWareID": self.get_hw_id(),
-            #             "object": {
-            #                 "ParameterName": "Connection",
-            #                 "Value": "1111",
-            #                 "AlarmID": "9999"
-            #             }
-            #         }
-            #     )
+            if self.connection_flag:
+                payload = json.dumps(
+                    {
+                        "HardWareID": self.get_hw_id(),
+                        "object": {
+                            "ParameterName": "Connection",
+                            "Value": "1111",
+                            "AlarmID": "9999"
+                        }
+                    }
+                )
+
+                result, mid = self.client.publish("iot-data3", payload=payload, qos=1, retain=True)
+                if result == mqtt.MQTT_ERR_SUCCESS:
+                    self.logger.info(f"Connection Payload send! Message ID: {mid}")
+                else:
+                    self.logger.error(f"Error sending Connection Payload! MQTT Error Code: {result}")
             #
             #     # device_info_obj = DeviceInformation()
             #     # device_info_obj.get_device_info()
