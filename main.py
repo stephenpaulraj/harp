@@ -68,42 +68,44 @@ class MQTTClient:
         self.client.disconnect()
         sys.exit()
 
-    def is_eth1_interface_present(self):
+    def is_eth_interface_present(self):
         with IPDB() as ipr:
             try:
-                eth1_interface = ipr.interfaces.eth1.operstate
-                eth0_interface = ipr.interfaces.eth0.operstate
+                eth0_interface = ipr.interfaces.get('eth0', None)
+                eth1_interface = ipr.interfaces.get('eth1', None)
 
-                eth1_ip = self.get_interface_ip('eth1')
-                eth0_ip = self.get_interface_ip('eth0')
+                eth0_ip = self.get_interface_ip('eth0') if eth0_interface else None
+                eth1_ip = self.get_interface_ip('eth1') if eth1_interface else None
 
-                if eth1_interface == "UP" and eth1_ip == '192.168.3.11':
-                    self.logger.info("eth1 IP is '192.168.3.11'.")
-                    return True
-                elif eth0_interface == "UP" and eth0_ip == '192.168.3.11':
+                if eth0_ip == '192.168.3.11':
                     self.logger.info("eth0 IP is '192.168.3.11'.")
                     return True
-
-                self.logger.error("Neither eth0 nor eth1 interface found with IP '192.168.3.11'.")
-                if not self.check_sample_json():
-                    self.logger.error("Problem with Web-Alarm Json File.")
-                    return False
-                self.logger.info("All (Device, PLC, Network) checklist passed.")
-                return True
+                elif eth1_ip == '192.168.3.11':
+                    self.logger.info("eth1 IP is '192.168.3.11'.")
+                    return True
+                else:
+                    self.logger.error("Neither eth0 nor eth1 interface found with IP '192.168.3.11'.")
+                    if not self.check_sample_json():
+                        self.logger.error("Problem with Web-Alarm Json File.")
+                        return False
+                    self.logger.info("All (Device, PLC, Network) checklist passed.")
+                    return True
             except Exception as e:
                 self.logger.error(f"Error checking eth interfaces: {e}")
                 return False
 
     def get_interface_ip(self, interface_name):
         try:
-            import netifaces
-            addresses = netifaces.ifaddresses(interface_name)
-            if netifaces.AF_INET in addresses:
-                return addresses[netifaces.AF_INET][0]['addr']
-            else:
-                return None
+            with IPDB() as ipr:
+                iface = ipr.interfaces.get(interface_name)
+                if iface:
+                    addresses = iface.ipaddr
+                    for address in addresses:
+                        if address['prefixlen'] == 24:  # Assuming /24 subnet
+                            return address['address']
+            return None
         except Exception as e:
-            self.logger.error(f"Error getting IP for interface {interface_name}: {e}")
+            self.logger.error(f"Error getting IP for {interface_name}: {e}")
             return None
 
     def check_sample_json(self):
