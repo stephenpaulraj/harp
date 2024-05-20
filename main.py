@@ -71,18 +71,18 @@ class MQTTClient:
     def is_eth1_interface_present(self):
         with IPDB() as ipr:
             try:
-                eth1_interface = ipr.interfaces.eth1.operstate
-                eth0_interface = ipr.interfaces.eth0.operstate
-
-                eth1_ip = self.get_interface_ip('eth1')
-                eth0_ip = self.get_interface_ip('eth0')
-
-                if eth1_interface == "UP" and eth1_ip == '192.168.3.11':
-                    self.logger.info("eth1 IP is '192.168.3.11'.")
-                    return True
-                elif eth0_interface == "UP" and eth0_ip == '192.168.3.11':
-                    self.logger.info("eth0 IP is '192.168.3.11'.")
-                    return True
+                # eth1_interface = ipr.interfaces.eth1.operstate
+                # eth0_interface = ipr.interfaces.eth0.operstate
+                #
+                # eth1_ip = self.get_interface_ip('eth1')
+                # eth0_ip = self.get_interface_ip('eth0')
+                #
+                # if eth1_interface == "UP" and eth1_ip == '192.168.3.11':
+                #     self.logger.info("eth1 IP is '192.168.3.11'.")
+                #     return True
+                # elif eth0_interface == "UP" and eth0_ip == '192.168.3.11':
+                #     self.logger.info("eth0 IP is '192.168.3.11'.")
+                #     return True
 
                 self.logger.error("Neither eth0 nor eth1 interface found with IP '192.168.3.11'.")
                 if not self.check_sample_json():
