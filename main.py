@@ -69,12 +69,21 @@ class MQTTClient:
     def is_eth_interface_present(self):
         with IPDB() as ipr:
             try:
+                # Fetch interfaces
                 eth0_interface = ipr.interfaces.get('eth0', None)
                 eth1_interface = ipr.interfaces.get('eth1', None)
 
+                self.logger.debug(f"eth0_interface: {eth0_interface}")
+                self.logger.debug(f"eth1_interface: {eth1_interface}")
+
+                # Check if interfaces are up
                 eth0_ip = self.get_interface_ip('eth0') if eth0_interface and eth0_interface.operstate == 'UP' else None
                 eth1_ip = self.get_interface_ip('eth1') if eth1_interface and eth1_interface.operstate == 'UP' else None
 
+                self.logger.debug(f"eth0 IP: {eth0_ip}")
+                self.logger.debug(f"eth1 IP: {eth1_ip}")
+
+                # Check if the IP is present on any interface
                 eth0_ip_present = eth0_ip == '192.168.3.11'
                 eth1_ip_present = eth1_ip == '192.168.3.11'
 
@@ -89,7 +98,7 @@ class MQTTClient:
                     self.logger.info("All (Device, PLC, Network) checklist passed.")
                     return False
             except Exception as e:
-                self.logger.error(f"Error checking eth interfaces : {e}")
+                self.logger.error(f"Error checking eth interfaces: {e}")
                 return False
 
     def get_interface_ip(self, interface_name):
@@ -100,8 +109,8 @@ class MQTTClient:
                 if iface:
                     # Getting the first IPv4 address
                     for ip_info in iface.ipaddr:
-                        if ip_info['family'] == 2:  # AF_INET (IPv4)
-                            return ip_info['address']
+                        if ip_info[0].count('.') == 3:  # This checks if it's an IPv4 address
+                            return ip_info[0]
         except Exception as e:
             self.logger.error(f"Error retrieving IP for {interface_name}: {e}")
         return None
