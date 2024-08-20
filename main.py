@@ -514,18 +514,18 @@ class MQTTClient:
                 self.retry_connect()  # Retry again on failure
         else:
             self.logger.error("Maximum retries reached. Restarting the Modem and Device...")
-            serial_port = '/dev/ttyUSB2'
-            baud_rate = 115200
-            ser = serial.Serial(serial_port, baud_rate, timeout=1)
+            # serial_port = '/dev/ttyUSB2'
+            # baud_rate = 115200
+            # ser = serial.Serial(serial_port, baud_rate, timeout=1)
             try:
-                ser.write(b'AT+CPOF\r\n')
-                time.sleep(1)
-                response = ser.read_all().decode('utf-8')
-                self.logger.info("Response from modem:")
-                self.logger.info(response)
+                # ser.write(b'AT+CPOF\r\n')
+                # time.sleep(1)
+                # response = ser.read_all().decode('utf-8')
+                self.logger.info("Rebooting Device")
+                # self.logger.info(response)
 
             finally:
-                ser.close()
+                # ser.close()
                 subprocess.run('sudo reboot', shell=True, check=True)
                 self.exit_gracefully()
 
